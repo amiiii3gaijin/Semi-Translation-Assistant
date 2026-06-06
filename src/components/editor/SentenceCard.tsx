@@ -19,7 +19,7 @@ export function SentenceCard({ sentence, isActive, textareaRef }: SentenceCardPr
   return (
     <div className={twMerge(
         clsx(
-            "w-full rounded-[38px] overflow-hidden transition-all duration-300",
+            "w-full rounded-[32px] overflow-hidden transition-all duration-300",
             isActive 
                  ? "bg-white shadow-[0_30px_70px_rgba(0,0,0,0.08)] border border-gray-100" 
                  : "bg-white/30 backdrop-blur-sm shadow-xl border border-white/40 select-none pointer-events-none"

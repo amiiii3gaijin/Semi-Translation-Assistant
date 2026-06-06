@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { useDocumentStore } from '../store/useDocumentStore';
 import { useUIStore } from '../store/useUIStore';
-import { exportToJSON } from '../utils/fileExporter';
+import { exportToTXT } from '../utils/fileExporter';
 
 export function useMilestoneTracker() {
   const completedSentences = useDocumentStore((state) => state.completedSentences);
@@ -31,9 +31,9 @@ export function useMilestoneTracker() {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'F2') {
         e.preventDefault();
-        exportToJSON(useDocumentStore.getState());
+        exportToTXT(useDocumentStore.getState());
         lastExportTime.current = Date.now();
-        showToast('备份文件已下载。');
+        showToast('文本文件已下载。');
       }
     };
     window.addEventListener('keydown', handleKeyDown);

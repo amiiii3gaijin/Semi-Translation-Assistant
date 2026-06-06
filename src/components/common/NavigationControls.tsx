@@ -91,7 +91,7 @@ export function NavigationControls() {
                             initial={{ opacity: 0, y: 10, scale: 0.95 }}
                             animate={{ opacity: 1, y: 0, scale: 1 }}
                             exit={{ opacity: 0, y: 10, scale: 0.95, pointerEvents: 'none' }}
-                            className="glass-panel p-6 rounded-3xl shadow-2xl w-[300px] border border-white text-gray-700 origin-bottom-left absolute bottom-[68px] left-0"
+                            className="bg-white/80 backdrop-blur-xl p-6 rounded-[32px] shadow-[0_20px_60px_rgba(0,0,0,0.15)] w-[320px] border border-white text-gray-700 origin-bottom-left absolute bottom-[72px] left-0"
                         >
                             <div className="space-y-6">
                                 {/* Font Size Controls */}
@@ -143,7 +143,7 @@ export function NavigationControls() {
                                     <ul className="space-y-3 text-[11px] font-medium opacity-90">
                                         <li className="flex items-center justify-between">
                                             <span className="text-gray-500">上下翻句</span>
-                                            <div className="flex gap-1"><kbd className="bg-white/80 border border-gray-200/60 rounded px-1.5 py-0.5 shadow-sm text-gray-700">PgUp</kbd><span className="text-gray-300">/</span><kbd className="bg-white/80 border border-gray-200/60 rounded px-1.5 py-0.5 shadow-sm text-gray-700">PgDn</kbd></div>
+                                            <div className="flex gap-1"><kbd className="bg-white/80 border border-gray-200/60 rounded px-1.5 py-0.5 shadow-sm text-gray-700">PgUp</kbd><span className="text-gray-300">/</span><kbd className="bg-white/80 border border-gray-200/60 rounded px-1.5 py-0.5 shadow-sm text-gray-700">PgDn</kbd><span className="text-gray-300">/</span><kbd className="bg-white/80 border border-gray-200/60 rounded px-1.5 py-0.5 shadow-sm text-gray-700">Enter</kbd></div>
                                         </li>
                                         <li className="flex items-center justify-between">
                                             <span className="text-gray-500">左右平移焦点</span>
@@ -166,7 +166,7 @@ export function NavigationControls() {
                 
                 <button 
                     onClick={() => setShowShortcuts(prev => !prev)}
-                    className="w-[52px] h-[52px] flex items-center justify-center bg-white/70 backdrop-blur-xl border border-white/50 rounded-full shadow-lg text-gray-500 hover:text-blue-500 transition-colors"
+                    className="w-[54px] h-[54px] flex items-center justify-center bg-white/80 backdrop-blur-xl border border-white rounded-full shadow-[0_8px_30px_rgba(0,0,0,0.12)] hover:shadow-[0_12px_40px_rgba(0,0,0,0.16)] text-gray-500 hover:text-blue-500 hover:-translate-y-1 transition-all duration-300"
                 >
                     <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
                 </button>
