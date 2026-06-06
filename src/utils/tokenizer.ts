@@ -1,13 +1,21 @@
 import { Segment, useDefault } from 'segmentit';
 import { Token } from '../types';
 
-const segmentit = useDefault(new Segment());
+let segmentitInstance: any = null;
+
+function getSegmentit() {
+  if (!segmentitInstance) {
+    segmentitInstance = useDefault(new Segment());
+  }
+  return segmentitInstance;
+}
 
 // Regex matches citations like (Hendriks et al., 2019) or （Veenman，1984）
 // Supports English and Chinese parentheses, and numbers/et al.
 const CITATION_REGEX = /([（(][^）)]*(?:et al\.|et al|[\d]{4})[^）)]*[）)])/g;
 
 export function tokenize(sentence: string, sentenceId: string): Token[] {
+  const segmentit = getSegmentit();
   const parts = sentence.split(CITATION_REGEX);
   let tokens: Token[] = [];
   let tokenIndex = 0;

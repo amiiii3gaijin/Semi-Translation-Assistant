@@ -12,7 +12,7 @@ export function useMilestoneTracker() {
 
   useEffect(() => {
     if (completedSentences >= lastToastAtCount.current + 10) {
-      showToast('已完成 10 句新进度。按 F2 保存进度文件到本地防丢失。');
+      showToast('已完成 10 句新进度。按 F2 一键导出/备份进度。');
       lastToastAtCount.current = completedSentences;
     }
   }, [completedSentences, showToast]);
@@ -20,7 +20,7 @@ export function useMilestoneTracker() {
   useEffect(() => {
     const interval = setInterval(() => {
       if (Date.now() - lastExportTime.current > 15 * 60 * 1000) {
-         showToast('距离上次备份已过 15 分钟。按 F2 保存进度。');
+         showToast('距离上次备份已过 15 分钟。按 F2 一键导出。');
          lastExportTime.current = Date.now();
       }
     }, 60000); 
@@ -31,9 +31,16 @@ export function useMilestoneTracker() {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'F2') {
         e.preventDefault();
-        exportToTXT(useDocumentStore.getState());
+        const docState = useDocumentStore.getState();
+        exportToTXT(docState);
+        
+        const textToCopy = docState.sentences
+            .map(s => s.translatedText || s.originalText)
+            .join('\n\n');
+        navigator.clipboard.writeText(textToCopy).catch(() => {});
+            
         lastExportTime.current = Date.now();
-        showToast('文本文件已下载。');
+        showToast('已导出文本并复制到剪贴板。');
       }
     };
     window.addEventListener('keydown', handleKeyDown);

@@ -52,12 +52,23 @@ export default function App() {
          <div className="w-full max-w-3xl glass-panel p-12 rounded-[32px] shadow-[0_20px_60px_rgba(0,0,0,0.04)] border border-gray-100 relative flex flex-col items-center text-center">
              <h1 className="text-[34px] font-bold mb-4 tracking-tight text-gray-800">翻译辅助</h1>
              <p className="text-gray-500 mb-10 font-medium text-[17px]">请输入或粘贴原文内容以建立工作区。</p>
-             <textarea 
-                className="w-full h-80 p-6 glass-panel rounded-[24px] focus:outline-none focus:bg-white/70 transition-all resize-none mb-10 text-[18px] text-gray-700 leading-relaxed font-sans placeholder:text-gray-400/60 shadow-inner"
-                placeholder="在此粘贴纯文本..."
-                value={inputText}
-                onChange={e => setInputText(e.target.value)}
-             />
+             <div className="relative w-full mb-10 group">
+                 <textarea 
+                    className="w-full h-80 p-6 glass-panel rounded-[24px] focus:outline-none focus:bg-white/70 transition-all resize-none text-[18px] text-gray-700 leading-relaxed font-sans placeholder:text-gray-400/60 shadow-inner"
+                    placeholder="在此粘贴纯文本..."
+                    value={inputText}
+                    onChange={e => setInputText(e.target.value)}
+                 />
+                 {inputText && (
+                     <button
+                         onClick={() => setInputText('')}
+                         className="absolute top-4 right-4 p-2 bg-white/50 hover:bg-white/90 text-gray-400 hover:text-red-500 rounded-full transition-all opacity-0 group-hover:opacity-100 shadow-sm"
+                         title="清空文本"
+                     >
+                         <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+                     </button>
+                 )}
+             </div>
              <button 
                 className="w-full py-4 bg-gray-900 text-white rounded-[24px] hover:bg-black hover:-translate-y-0.5 hover:shadow-xl hover:shadow-gray-900/20 transition-all font-semibold tracking-wide cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none disabled:shadow-none text-[18px]"
                 onClick={() => importDocument(inputText)}

@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useDocumentStore } from '../../store/useDocumentStore';
+import { useUIStore } from '../../store/useUIStore';
 import { exportToTXT } from '../../utils/fileExporter';
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -76,11 +77,29 @@ export function NavigationControls() {
             
             <div className="absolute top-6 right-6 z-50 flex gap-3">
                 <button 
+                    onClick={async () => {
+                        const documentState = useDocumentStore.getState();
+                        const textToCopy = documentState.sentences
+                            .map(s => s.translatedText || s.originalText)
+                            .join('\n\n');
+                        try {
+                            await navigator.clipboard.writeText(textToCopy);
+                            useUIStore.getState().showToast('已复制全部内容到剪贴板。');
+                        } catch (e) {
+                            useUIStore.getState().showToast('复制失败，请重试。');
+                        }
+                    }}
+                    className="flex items-center gap-2 px-5 py-2 glass-panel-heavy text-sm font-semibold text-gray-800 rounded-full cursor-pointer hover:bg-white/90 transition-all shadow-md hover:shadow-lg border-white"
+                >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+                    复制成果
+                </button>
+                <button 
                     onClick={() => exportToTXT(documentState)}
                     className="flex items-center gap-2 px-5 py-2 glass-panel-heavy text-sm font-semibold text-gray-800 rounded-full cursor-pointer hover:bg-white/90 transition-all shadow-md hover:shadow-lg border-white"
                 >
                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
-                    导出成果
+                    一键导出
                 </button>
             </div>
             
