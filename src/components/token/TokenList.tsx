@@ -21,14 +21,17 @@ export function TokenList({ sentence, textareaRef }: TokenListProps) {
   const insertTextAtCursor = (text: string) => {
     if (textareaRef?.current) {
         const textarea = textareaRef.current;
-        const start = textarea.selectionStart;
-        const currentVal = textarea.value;
-        const newVal = currentVal.substring(0, start) + text + currentVal.substring(textarea.selectionEnd);
-        updateTranslation(sentence.id, newVal);
-        setTimeout(() => {
-            textarea.setSelectionRange(start + text.length, start + text.length);
-            textarea.focus();
-        }, 0);
+        textarea.focus();
+        const success = document.execCommand('insertText', false, text);
+        if (!success) {
+            const start = textarea.selectionStart;
+            const currentVal = textarea.value;
+            const newVal = currentVal.substring(0, start) + text + currentVal.substring(textarea.selectionEnd);
+            updateTranslation(sentence.id, newVal);
+            setTimeout(() => {
+                textarea.setSelectionRange(start + text.length, start + text.length);
+            }, 0);
+        }
     } else {
         insertTokenToTranslation(sentence.id, text);
     }
@@ -56,7 +59,7 @@ export function TokenList({ sentence, textareaRef }: TokenListProps) {
          const end = Math.max(dragStartIdx, dragEndIdx);
          
          const selectedTokens = sentence.tokens.slice(start, end + 1);
-         const textToInsert = selectedTokens.map(t => t.text).join('').replace(/[\r\n\s]+/g, '');
+         const textToInsert = selectedTokens.map(t => t.text).join('').trim().replace(/[\r\n]+/g, '');
          
          if (textToInsert) {
              insertTextAtCursor(textToInsert);
@@ -86,7 +89,7 @@ export function TokenList({ sentence, textareaRef }: TokenListProps) {
         onMouseUp={() => {
             const selection = window.getSelection();
             if (selection && selection.toString().trim()) {
-                const dragText = selection.toString().trim().replace(/[\r\n\s]+/g, '');
+                const dragText = selection.toString().trim().replace(/[\r\n]+/g, '');
                 if (dragText && !isDragging.current) {
                      insertTextAtCursor(dragText);
                      selection.removeAllRanges();

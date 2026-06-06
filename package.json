@@ -8,7 +8,8 @@
     "build": "vite build",
     "preview": "vite preview",
     "clean": "rm -rf dist server.js",
-    "lint": "tsc --noEmit"
+    "lint": "tsc --noEmit",
+    "analyze": "NO_COLOR=1 node fuck-u-code-main/bin/fuck-u-code.js analyze fuck-u-code-main/src --format markdown > analyze-result.md"
   },
   "dependencies": {
     "@google/genai": "^2.4.0",

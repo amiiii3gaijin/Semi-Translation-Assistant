@@ -39,7 +39,7 @@ export function NavigationControls() {
                             initial={{ scale: 0.95, opacity: 0, y: 10 }}
                             animate={{ scale: 1, opacity: 1, y: 0 }}
                             exit={{ scale: 0.95, opacity: 0, y: 10 }}
-                            className="bg-white rounded-[24px] shadow-2xl p-8 max-w-sm w-full relative z-10 border border-gray-100 flex flex-col pointer-events-auto"
+                            className="bg-white rounded-[32px] shadow-2xl p-8 max-w-sm w-full relative z-10 border border-gray-100 flex flex-col pointer-events-auto"
                         >
                             <h3 className="text-[22px] font-bold text-gray-900 mb-3 tracking-tight">退出工作区</h3>
                             <p className="text-gray-500 mb-8 font-medium text-[15px] leading-relaxed">确定要退出工作区吗？尚未导出的所有翻译进度将会永久丢失。</p>

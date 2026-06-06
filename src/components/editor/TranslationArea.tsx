@@ -35,20 +35,6 @@ export function TranslationArea({ sentenceId, initialText, isActive, textareaRef
     }
   };
 
-  const handlePaste = (e: React.ClipboardEvent) => {
-    e.preventDefault();
-    const text = e.clipboardData.getData('text/plain');
-    const start = textareaRef?.current?.selectionStart || 0;
-    const end = textareaRef?.current?.selectionEnd || 0;
-    const newText = initialText.substring(0, start) + text + initialText.substring(end);
-    updateTranslation(sentenceId, newText);
-    setTimeout(() => {
-      if (textareaRef?.current) {
-        textareaRef.current.selectionStart = textareaRef.current.selectionEnd = start + text.length;
-      }
-    }, 0);
-  };
-
   return (
     <div className="w-full h-full flex flex-col justify-start relative px-4">
         <div className="grid w-full items-start relative min-w-0">
@@ -66,7 +52,6 @@ export function TranslationArea({ sentenceId, initialText, isActive, textareaRef
                 value={initialText}
                 onChange={handleChange}
                 onKeyDown={handleKeyDown}
-                onPaste={handlePaste}
                 disabled={!isActive}
                 placeholder={isActive ? "在此输入..." : ""}
                 className="col-start-1 row-start-1 w-full h-full bg-transparent resize-none focus:outline-none font-medium leading-[1.6] tracking-tight text-gray-800 placeholder:text-gray-400/60 overflow-hidden font-sans text-left p-4 m-0"

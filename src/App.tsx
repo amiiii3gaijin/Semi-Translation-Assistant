@@ -26,12 +26,6 @@ export default function App() {
     loadFromIndexedDB().finally(() => setIsInitializing(false));
   }, [loadFromIndexedDB]);
 
-  const handlePaste = (e: React.ClipboardEvent) => {
-    e.preventDefault();
-    const text = e.clipboardData.getData('text/plain');
-    setInputText(prev => prev + text);
-  };
-
   if (isInitializing) {
      return <div className="flex w-full h-screen items-center justify-center text-gray-500">加载工作区...</div>;
   }
@@ -63,7 +57,6 @@ export default function App() {
                 placeholder="在此粘贴纯文本..."
                 value={inputText}
                 onChange={e => setInputText(e.target.value)}
-                onPaste={handlePaste}
              />
              <button 
                 className="w-full py-4 bg-gray-900 text-white rounded-[24px] hover:bg-black hover:-translate-y-0.5 hover:shadow-xl hover:shadow-gray-900/20 transition-all font-semibold tracking-wide cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none disabled:shadow-none text-[18px]"
