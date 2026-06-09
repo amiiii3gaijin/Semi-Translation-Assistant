@@ -15,7 +15,7 @@ export function SentenceTrunk({ tokens }: SentenceTrunkProps) {
         <motion.div 
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            className="mt-6 p-5 glass-panel rounded-[24px] w-full max-w-lg mx-auto text-left shadow-sm border border-white/60"
+            className="p-6 bg-white/80 backdrop-blur-2xl rounded-[24px] w-full max-w-2xl mx-auto text-left shadow-[0_10px_40px_rgba(0,0,0,0.06)] border border-white"
         >
             <div className="font-semibold text-gray-500 mb-3 flex items-center gap-2 text-xs uppercase tracking-widest">
                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="opacity-70 text-blue-500"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>

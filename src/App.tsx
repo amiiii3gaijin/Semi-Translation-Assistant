@@ -92,20 +92,21 @@ export default function App() {
                          animate={{ opacity: 1, scale: 1 }}
                          exit={{ opacity: 0, scale: 0.9 }}
                          onClick={() => setInputText('')}
-                         className="absolute top-6 right-6 p-2.5 bg-gray-100/80 hover:bg-gray-200 text-gray-500 hover:text-red-500 rounded-full transition-all shadow-sm backdrop-blur-sm cursor-pointer z-10"
+                         className="absolute top-6 right-6 p-2.5 bg-gray-100/80 hover:bg-white text-gray-500 hover:text-red-500 rounded-full transition-all duration-300 shadow-sm hover:shadow-md backdrop-blur-sm cursor-pointer z-10 group"
                          title="清空内容"
                      >
-                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="group-hover:rotate-90 transition-transform duration-500"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
                      </motion.button>
                  )}
                  </AnimatePresence>
              </div>
              <button 
-                className="w-full py-4 bg-gray-900 text-white rounded-[24px] hover:bg-black hover:-translate-y-0.5 hover:shadow-xl hover:shadow-gray-900/20 transition-all font-semibold tracking-wide cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none disabled:shadow-none text-[18px]"
+                className="w-full py-4 bg-gray-900 text-white rounded-[24px] hover:bg-black hover:-translate-y-1 hover:shadow-2xl hover:shadow-gray-900/40 transition-all duration-500 font-semibold tracking-wide cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none disabled:shadow-none text-[18px] flex items-center justify-center gap-3 group"
                 onClick={() => importDocument(inputText)}
                 disabled={!inputText.trim()}
              >
                 进入工作区
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="group-hover:translate-x-1.5 transition-transform duration-500 opacity-80"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
              </button>
          </div>
       </div>
@@ -113,7 +114,7 @@ export default function App() {
   }
 
   return (
-    <div className="w-full h-screen relative bg-white">
+    <div className="fixed inset-0 w-full h-full bg-white overflow-hidden">
       <TopProgressBar />
       <SentenceStream />
       <NavigationControls />

@@ -70,9 +70,9 @@ export function NavigationControls() {
                 <button 
                     onClick={() => setShowExitConfirm(true)}
                     title="关闭并清空工作区"
-                    className="flex items-center gap-2 px-5 py-2 glass-panel-heavy text-sm font-semibold text-gray-700 rounded-full cursor-pointer hover:bg-white transition-all shadow-md hover:shadow-lg border-white group"
+                    className="flex items-center gap-2 px-5 py-2 glass-panel-heavy text-sm font-semibold text-gray-700 rounded-full cursor-pointer hover:bg-white hover:-translate-y-0.5 hover:shadow-xl transition-all duration-300 shadow-md border-white group"
                 >
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-gray-400 group-hover:text-red-500 transition-colors"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-gray-400 group-hover:text-red-500 group-hover:rotate-90 transition-all duration-300"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
                     退出工作区
                 </button>
             </div>
@@ -93,16 +93,16 @@ export function NavigationControls() {
                             useUIStore.getState().showToast('复制失败，请重试。');
                         }
                     }}
-                    className="flex items-center gap-2 px-5 py-2 glass-panel-heavy text-sm font-semibold text-gray-800 rounded-full cursor-pointer hover:bg-white/90 transition-all shadow-md hover:shadow-lg border-white"
+                    className="flex items-center gap-2 px-5 py-2 glass-panel-heavy text-sm font-semibold text-gray-800 rounded-full cursor-pointer hover:bg-white/95 hover:-translate-y-0.5 hover:shadow-xl transition-all duration-300 shadow-md border-white group"
                 >
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-gray-500 group-hover:text-blue-500 group-hover:scale-110 transition-all duration-300"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
                     复制成果
                 </button>
                 <button 
                     onClick={() => exportToTXT(documentState)}
-                    className="flex items-center gap-2 px-5 py-2 glass-panel-heavy text-sm font-semibold text-gray-800 rounded-full cursor-pointer hover:bg-white/90 transition-all shadow-md hover:shadow-lg border-white"
+                    className="flex items-center gap-2 px-5 py-2 glass-panel-heavy text-sm font-semibold text-gray-800 rounded-full cursor-pointer hover:bg-white/95 hover:-translate-y-0.5 hover:shadow-xl transition-all duration-300 shadow-md border-white group"
                 >
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-gray-500 group-hover:text-blue-500 group-hover:scale-110 transition-all duration-300"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10" className="group-hover:translate-y-1 transition-transform duration-300"/><line x1="12" x2="12" y1="15" y2="3" className="group-hover:translate-y-1 transition-transform duration-300"/></svg>
                     一键导出
                 </button>
             </div>
@@ -198,15 +198,15 @@ export function NavigationControls() {
             <div className="absolute bottom-8 right-8 z-50 flex gap-3">
                  <button 
                      onClick={() => prevSentence()}
-                     className="w-[52px] h-[52px] flex items-center justify-center bg-white/70 backdrop-blur-xl border border-white/50 rounded-full shadow-lg text-gray-600 hover:bg-white hover:text-gray-900 transition-all text-xl group"
+                     className="w-[52px] h-[52px] flex items-center justify-center bg-white/70 backdrop-blur-xl border border-white/50 rounded-full shadow-lg text-gray-600 hover:bg-white hover:text-gray-900 transition-all duration-300 text-xl group hover:-translate-y-1 hover:shadow-xl hover:shadow-gray-900/5"
                  >
-                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="group-hover:-translate-y-0.5 transition-transform"><path d="m18 15-6-6-6 6"/></svg>
+                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="group-hover:-translate-y-1.5 group-hover:scale-110 transition-transform duration-500"><path d="m18 15-6-6-6 6"/></svg>
                  </button>
                  <button 
                      onClick={() => nextSentence()}
-                     className="w-[52px] h-[52px] flex items-center justify-center bg-blue-500 border border-blue-400 rounded-full shadow-lg shadow-blue-500/30 text-white hover:bg-blue-600 transition-all text-xl group"
+                     className="w-[52px] h-[52px] flex items-center justify-center bg-blue-500 border border-blue-400 rounded-full shadow-lg shadow-blue-500/30 text-white hover:bg-blue-600 transition-all duration-300 text-xl group hover:translate-y-1 hover:shadow-xl hover:shadow-blue-500/40"
                  >
-                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="group-hover:translate-y-0.5 transition-transform"><path d="m6 9 6 6 6-6"/></svg>
+                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="group-hover:translate-y-1.5 group-hover:scale-110 transition-transform duration-500"><path d="m6 9 6 6 6-6"/></svg>
                  </button>
             </div>
         </>

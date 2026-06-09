@@ -1,0 +1,125 @@
+────────────────────────────────────────────────────────────────────────────────
+
+  🌸 Code Quality Analysis Report 🌸
+
+────────────────────────────────────────────────────────────────────────────────
+
+  Overall Score: 89.43 / 100 - Fresh and pleasant, like morning dew—almost makes you want to refactor for fun
+  Quality Level: A whiff of trouble - Mostly fine, but a little stinky. Air it out and you'll survive
+
+  102 files analyzed
+  14397 files skipped
+
+◆ Metrics Details
+
+  ✓✓ Cyclomatic Complexity     6.4%  Clear structure, no unnecessary complexity, great!
+  ✓✓ Cognitive Complexity      7.8%  Clear structure, no unnecessary complexity, great!
+  ✓✓ Nesting Depth             7.1%  Beautiful structure, easy to follow
+  ✓✓ Function Length           2.1%  Short and sweet, easy to understand
+  ✓✓ File Length               2.1%  Short and sweet, easy to understand
+  ✓✓ Parameter Count           0.1%  Clear structure, no unnecessary complexity, great!
+  ✓✓ Code Duplication          0.2%  Clear structure, no unnecessary complexity, great!
+  ✓✓ Structure Analysis        2.3%  Beautiful structure, easy to follow
+  ✓✓ Error Handling           16.5%  Clear structure, no unnecessary complexity, great!
+  ○ Comment Ratio            44.9%  Sparse comments, readers need imagination
+  ✓✓ Naming Convention         0.0%  Clear naming, the light of programmer civilization
+
+◆ Problem Files Ranking
+
+  1. src/hooks/useKeyboardShortcuts.ts                      (Issue Score: 32.40)
+     🔄 Complexity Issues: 3   🏗️ Structure Issues: 1   📝 Comment Issues: 1
+
+     🔄 handleKeyDown() L6: Complexity: 22
+     🔄 handleKeyDown() L6: Cognitive Complexity: 36
+     🔄 handleKeyDown() L6: Nesting Depth: 7
+     🏗️  handleKeyDown() L6: High nesting: 7
+
+  2. fuck-u-code-main/src/cli/output/markdown.ts            (Issue Score: 30.69)
+     🔄 Complexity Issues: 3   ⚠️ Other Issues: 2   🏗️ Structure Issues: 1   📝 Comment Issues: 1
+
+     🔄 render() L39: Complexity: 32
+     🔄 render() L39: Cognitive Complexity: 42
+     🔄 render() L39: Nesting Depth: 5
+     📏 render() L39: 273 Size
+     🏗️  render() L39: High nesting: 5
+
+  3. fuck-u-code-main/src/parser/regex-parser.ts            (Issue Score: 26.31)
+     🔄 Complexity Issues: 11   ⚠️ Other Issues: 1   🏗️ Structure Issues: 8   ❌ Error Handling Issues: 1   📝 Comment Issues: 1
+
+     🔄 extractFunctionsBrace() L301: Complexity: 13
+     🔄 extractClassesIndent() L503: Complexity: 11
+     🔄 extractFunctionsBrace() L301: Cognitive Complexity: 21
+     🔄 countClassMembers() L405: Cognitive Complexity: 16
+     🔄 extractFunctionsIndent() L444: Cognitive Complexity: 18
+     🔍 ...and 15 more issues too smelly to list
+
+  4. fuck-u-code-main/src/metrics/duplication/code-dupli..  (Issue Score: 23.75)
+     🔄 Complexity Issues: 5   🏗️ Structure Issues: 3   📝 Comment Issues: 1
+
+     🔄 extractControlFlowSignature() L122: Complexity: 11
+     🔄 calculate() L35: Cognitive Complexity: 18
+     🔄 extractControlFlowSignature() L122: Cognitive Complexity: 27
+     🔄 calculate() L35: Nesting Depth: 4
+     🔄 extractControlFlowSignature() L122: Nesting Depth: 8
+     🔍 ...and 3 more issues too smelly to list
+
+  5. fuck-u-code-main/src/parser/tree-sitter-parser.ts      (Issue Score: 23.42)
+     🔄 Complexity Issues: 5   ⚠️ Other Issues: 1   🏗️ Structure Issues: 7   ❌ Error Handling Issues: 1   📝 Comment Issues: 1
+
+     🔄 countParameters() L829: Complexity: 11
+     🔄 countParameters() L829: Cognitive Complexity: 21
+     🔄 extractFunctionName() L749: Nesting Depth: 4
+     🔄 scan() L805: Nesting Depth: 4
+     🔄 countParameters() L829: Nesting Depth: 5
+     🔍 ...and 8 more issues too smelly to list
+
+  6. src/components/token/TokenItem.tsx                     (Issue Score: 22.08)
+     🔄 Complexity Issues: 3   🏗️ Structure Issues: 1   📝 Comment Issues: 1
+
+     🔄 TokenItem() L14: Complexity: 11
+     🔄 TokenItem() L14: Cognitive Complexity: 21
+     🔄 TokenItem() L14: Nesting Depth: 5
+     🏗️  TokenItem() L14: High nesting: 5
+
+  7. fuck-u-code-main/src/cli/commands/clone-and-analyze..  (Issue Score: 21.01)
+     🔄 Complexity Issues: 2   ⚠️ Other Issues: 1   🏗️ Structure Issues: 1   ❌ Error Handling Issues: 3   📝 Comment Issues: 1
+
+     🔄 runCloneAnalyze() L71: Complexity: 23
+     🔄 runCloneAnalyze() L71: Cognitive Complexity: 29
+     📏 runCloneAnalyze() L71: 164 Size
+     🏗️  runCloneAnalyze() L71: Medium nesting: 3
+     ❌ L179: Unhandled error-prone call
+     🔍 ...and 2 more issues too smelly to list
+
+  8. fuck-u-code-main/src/cli/output/console.ts             (Issue Score: 20.86)
+     🔄 Complexity Issues: 3   ⚠️ Other Issues: 1   📋 Duplication Issues: 1   🏗️ Structure Issues: 1   📝 Comment Issues: 1
+
+     🔄 getMetricComment() L550: Complexity: 11
+     🔄 getMetricComment() L550: Cognitive Complexity: 21
+     🔄 getMetricComment() L550: Nesting Depth: 5
+     📋 getStatusEmoji() L600: Duplicate pattern: getStatusEmoji, getStatusColor, getScoreColor
+     🏗️  getMetricComment() L550: High nesting: 5
+
+  9. fuck-u-code-main/tests/unit/code-duplication.test.ts   (Issue Score: 19.59)
+     🔄 Complexity Issues: 2   ⚠️ Other Issues: 1   🏗️ Structure Issues: 1   📝 Comment Issues: 1
+
+     🔄 createParseResult() L8: Cognitive Complexity: 17
+     🔄 createParseResult() L8: Nesting Depth: 5
+     🏗️  createParseResult() L8: High nesting: 5
+
+  10. fuck-u-code-main/src/config/index.ts                   (Issue Score: 16.25)
+     🔄 Complexity Issues: 2   ⚠️ Other Issues: 2
+
+     🔄 loadAIConfig() L96: Complexity: 28
+     🔄 loadAIConfig() L96: Cognitive Complexity: 32
+     📏 loadAIConfig() L96: 177 Size
+
+◆ Diagnosis
+
+  🌸 A whiff of trouble - Mostly fine, but a little stinky. Air it out and you'll survive
+
+  👍 Keep going, you're the clean freak of the coding world, a true code hygiene champion
+
+────────────────────────────────────────────────────────────────────────────────
+  Analysis completed in 5537ms
+

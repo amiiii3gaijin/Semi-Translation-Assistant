@@ -81,21 +81,10 @@ export function TokenList({ sentence, textareaRef }: TokenListProps) {
       return 'middle';
   };
 
-  useEffect(() => {
+    useEffect(() => {
      const onGlobalPointerUp = () => {
          if (isDragging.current) {
              handlePointerUp();
-         }
-     };
-     
-     const onGlobalMouseUp = () => {
-         const selection = window.getSelection();
-         if (selection && selection.toString().trim()) {
-             const dragText = selection.toString().trim().replace(/[\r\n]+/g, '');
-             if (dragText && !isDragging.current) {
-                  insertTextAtCursor(dragText);
-                  selection.removeAllRanges();
-             }
          }
      };
 
@@ -106,12 +95,10 @@ export function TokenList({ sentence, textareaRef }: TokenListProps) {
      };
 
      window.addEventListener('pointerup', onGlobalPointerUp);
-     window.addEventListener('mouseup', onGlobalMouseUp);
      window.addEventListener('cardPointerLeave', onCardPointerLeave as EventListener);
      
      return () => {
          window.removeEventListener('pointerup', onGlobalPointerUp);
-         window.removeEventListener('mouseup', onGlobalMouseUp);
          window.removeEventListener('cardPointerLeave', onCardPointerLeave as EventListener);
      };
   }, [dragStartIdx, dragEndIdx, sentence]);

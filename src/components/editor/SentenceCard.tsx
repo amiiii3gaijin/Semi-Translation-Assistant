@@ -23,7 +23,7 @@ export function SentenceCard({ sentence, isActive, textareaRef }: SentenceCardPr
                 "w-full rounded-[32px] overflow-hidden transition-all duration-300",
                 isActive 
                      ? "bg-white shadow-[0_30px_70px_rgba(0,0,0,0.08)] border border-gray-100 p-[1px]" 
-                     : "bg-white/30 backdrop-blur-sm shadow-xl border border-white/40 select-none pointer-events-none"
+                     : "bg-white/60 shadow-lg border border-white/60 select-none pointer-events-none"
             )
         )}
         onPointerLeave={() => {
@@ -32,9 +32,9 @@ export function SentenceCard({ sentence, isActive, textareaRef }: SentenceCardPr
             }
         }}
     >
-        <div className="flex flex-col w-full min-h-[460px] items-stretch bg-white rounded-[31px]">
+        <div className={clsx("flex flex-col w-full min-h-[460px] max-h-[80vh] overflow-y-auto custom-scrollbar items-stretch rounded-[31px]", isActive ? "bg-white" : "bg-transparent")}>
             {/* Top side: Original text and tokens */}
-            <div className="w-full px-10 pt-16 pb-8 flex flex-col justify-center relative min-h-[180px]">
+            <div className="w-full px-10 pt-16 pb-8 flex flex-col justify-center relative min-h-[180px] shrink-0">
                 {isActive ? (
                     <div 
                         className="font-semibold leading-[1.7] text-gray-800 tracking-tight flex items-center justify-center w-full text-center"
@@ -69,7 +69,7 @@ export function SentenceCard({ sentence, isActive, textareaRef }: SentenceCardPr
                         className="text-gray-500 font-medium whitespace-pre-wrap px-8 leading-relaxed flex items-start justify-start opacity-70 tracking-wide text-left"
                         style={{ fontSize: `${Math.max(16, translationFontSize - 3)}px` }}
                     >
-                        {sentence.translatedText || <span className="opacity-40 italic">...</span>}
+                        {sentence.translatedText || null}
                     </div>
                 )}
             </div>
