@@ -7,6 +7,7 @@ import { NavigationControls } from './components/common/NavigationControls';
 import { useAutoSave } from './hooks/useAutoSave';
 import { useMilestoneTracker } from './hooks/useMilestone';
 import { exportToTXT } from './utils/fileExporter';
+import { motion, AnimatePresence } from 'motion/react';
 
 export default function App() {
   const loadFromIndexedDB = useDocumentStore((state) => state.loadFromIndexedDB);
@@ -27,7 +28,20 @@ export default function App() {
   }, [loadFromIndexedDB]);
 
   if (isInitializing) {
-     return <div className="flex w-full h-screen items-center justify-center text-gray-500">加载工作区...</div>;
+     return (
+         <div className="flex flex-col w-full h-screen items-center justify-center text-gray-500 gap-4">
+             <div>加载工作区...</div>
+             <button 
+                 onClick={() => {
+                     useDocumentStore.getState().clearDocument();
+                     window.location.reload();
+                 }}
+                 className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-600 text-xs font-semibold rounded-[12px] transition-colors"
+             >
+                 重置并清理缓存
+             </button>
+         </div>
+     );
   }
   
   if (isImporting) {
@@ -41,6 +55,16 @@ export default function App() {
                  <div className="w-full bg-gray-200/50 rounded-full h-2 shadow-inner overflow-hidden">
                      <div className="bg-gray-800 h-2 rounded-full transition-all duration-300" style={{ width: `${importProgress}%` }}></div>
                  </div>
+                 
+                 <button 
+                     onClick={() => {
+                         useDocumentStore.getState().clearDocument();
+                         window.location.reload();
+                     }}
+                     className="mt-2 w-full py-2.5 bg-red-50 hover:bg-red-100 text-red-500 rounded-[16px] text-sm font-semibold transition-colors"
+                 >
+                     停止并清理缓存
+                 </button>
              </div>
         </div>
      );
@@ -50,24 +74,31 @@ export default function App() {
     return (
       <div className="flex flex-col items-center justify-center w-full h-screen p-8 relative z-10 bg-white">
          <div className="w-full max-w-3xl glass-panel p-12 rounded-[32px] shadow-[0_20px_60px_rgba(0,0,0,0.04)] border border-gray-100 relative flex flex-col items-center text-center">
-             <h1 className="text-[34px] font-bold mb-4 tracking-tight text-gray-800">翻译辅助</h1>
-             <p className="text-gray-500 mb-10 font-medium text-[17px]">请输入或粘贴原文内容以建立工作区。</p>
+             <div className="flex flex-col items-center mb-10 w-full">
+                 <h1 className="text-[40px] font-bold tracking-tight text-gray-900">翻译辅助</h1>
+             </div>
+             
              <div className="relative w-full mb-10 group">
                  <textarea 
-                    className="w-full h-80 p-6 glass-panel rounded-[24px] focus:outline-none focus:bg-white/70 transition-all resize-none text-[18px] text-gray-700 leading-relaxed font-sans placeholder:text-gray-400/60 shadow-inner"
-                    placeholder="在此粘贴纯文本..."
+                    className="w-full h-80 p-8 glass-panel rounded-[24px] focus:outline-none focus:ring-4 focus:ring-gray-900/5 focus:bg-white/90 transition-all resize-none text-[18px] text-gray-700 leading-relaxed font-sans placeholder:text-gray-400/80 shadow-inner border border-gray-100"
+                    placeholder="在此粘贴或输入原文内容..."
                     value={inputText}
                     onChange={e => setInputText(e.target.value)}
                  />
+                 <AnimatePresence>
                  {inputText && (
-                     <button
+                     <motion.button
+                         initial={{ opacity: 0, scale: 0.9 }}
+                         animate={{ opacity: 1, scale: 1 }}
+                         exit={{ opacity: 0, scale: 0.9 }}
                          onClick={() => setInputText('')}
-                         className="absolute top-4 right-4 p-2 bg-white/50 hover:bg-white/90 text-gray-400 hover:text-red-500 rounded-full transition-all opacity-0 group-hover:opacity-100 shadow-sm"
-                         title="清空文本"
+                         className="absolute top-6 right-6 p-2.5 bg-gray-100/80 hover:bg-gray-200 text-gray-500 hover:text-red-500 rounded-full transition-all shadow-sm backdrop-blur-sm cursor-pointer z-10"
+                         title="清空内容"
                      >
-                         <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
-                     </button>
+                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+                     </motion.button>
                  )}
+                 </AnimatePresence>
              </div>
              <button 
                 className="w-full py-4 bg-gray-900 text-white rounded-[24px] hover:bg-black hover:-translate-y-0.5 hover:shadow-xl hover:shadow-gray-900/20 transition-all font-semibold tracking-wide cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none disabled:shadow-none text-[18px]"

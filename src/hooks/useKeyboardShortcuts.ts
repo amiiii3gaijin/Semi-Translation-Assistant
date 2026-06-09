@@ -63,7 +63,7 @@ export function useKeyboardShortcuts(textareaRef: React.RefObject<HTMLTextAreaEl
             useDocumentStore.getState().updateTranslation(currentSentence.id, newVal);
             setTimeout(() => {
                 textarea.setSelectionRange(start + text.length, start + text.length);
-                textarea.focus();
+                textarea.focus({ preventScroll: true });
             }, 0);
           } else {
             insertTokenToTranslation(currentSentence.id, activeToken.text);
@@ -72,11 +72,11 @@ export function useKeyboardShortcuts(textareaRef: React.RefObject<HTMLTextAreaEl
       } else if (e.code === 'PageUp') { 
          e.preventDefault();
          prevSentence();
-         setTimeout(() => textareaRef.current?.focus(), 0);
+         setTimeout(() => textareaRef.current?.focus({ preventScroll: true }), 0);
       } else if (e.code === 'PageDown') { 
          e.preventDefault();
          nextSentence();
-         setTimeout(() => textareaRef.current?.focus(), 0);
+         setTimeout(() => textareaRef.current?.focus({ preventScroll: true }), 0);
       }
     };
 

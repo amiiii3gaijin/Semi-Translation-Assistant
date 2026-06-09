@@ -17,15 +17,22 @@ export function SentenceCard({ sentence, isActive, textareaRef }: SentenceCardPr
   const translationFontSize = useDocumentStore((state) => state.translationFontSize);
 
   return (
-    <div className={twMerge(
-        clsx(
-            "w-full rounded-[32px] overflow-hidden transition-all duration-300",
-            isActive 
-                 ? "bg-white shadow-[0_30px_70px_rgba(0,0,0,0.08)] border border-gray-100" 
-                 : "bg-white/30 backdrop-blur-sm shadow-xl border border-white/40 select-none pointer-events-none"
-        )
-    )}>
-        <div className="flex flex-col w-full min-h-[460px] items-stretch">
+    <div 
+        className={twMerge(
+            clsx(
+                "w-full rounded-[32px] overflow-hidden transition-all duration-300",
+                isActive 
+                     ? "bg-white shadow-[0_30px_70px_rgba(0,0,0,0.08)] border border-gray-100 p-[1px]" 
+                     : "bg-white/30 backdrop-blur-sm shadow-xl border border-white/40 select-none pointer-events-none"
+            )
+        )}
+        onPointerLeave={() => {
+            if (isActive) {
+                window.dispatchEvent(new CustomEvent('cardPointerLeave'));
+            }
+        }}
+    >
+        <div className="flex flex-col w-full min-h-[460px] items-stretch bg-white rounded-[31px]">
             {/* Top side: Original text and tokens */}
             <div className="w-full px-10 pt-16 pb-8 flex flex-col justify-center relative min-h-[180px]">
                 {isActive ? (

@@ -4,6 +4,8 @@ import { useUIStore } from '../../store/useUIStore';
 import { exportToTXT } from '../../utils/fileExporter';
 import { motion, AnimatePresence } from 'motion/react';
 
+import { copyToClipboard } from '../../utils/clipboard';
+
 export function NavigationControls() {
     const nextSentence = useDocumentStore((state) => state.nextSentence);
     const prevSentence = useDocumentStore((state) => state.prevSentence);
@@ -80,12 +82,14 @@ export function NavigationControls() {
                     onClick={async () => {
                         const documentState = useDocumentStore.getState();
                         const textToCopy = documentState.sentences
-                            .map(s => s.translatedText || s.originalText)
-                            .join('\n\n');
-                        try {
-                            await navigator.clipboard.writeText(textToCopy);
+                            .map(s => s.translatedText.trim())
+                            .filter(Boolean)
+                            .join('\n');
+                        
+                        const success = await copyToClipboard(textToCopy);
+                        if (success) {
                             useUIStore.getState().showToast('已复制全部内容到剪贴板。');
-                        } catch (e) {
+                        } else {
                             useUIStore.getState().showToast('复制失败，请重试。');
                         }
                     }}

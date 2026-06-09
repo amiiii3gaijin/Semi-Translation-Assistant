@@ -1,7 +1,7 @@
 import { Sentence } from '../../types';
 import { TokenItem } from './TokenItem';
 import { useDocumentStore } from '../../store/useDocumentStore';
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 
 interface TokenListProps {
   sentence: Sentence;
@@ -21,7 +21,7 @@ export function TokenList({ sentence, textareaRef }: TokenListProps) {
   const insertTextAtCursor = (text: string) => {
     if (textareaRef?.current) {
         const textarea = textareaRef.current;
-        textarea.focus();
+        textarea.focus({ preventScroll: true });
         const success = document.execCommand('insertText', false, text);
         if (!success) {
             const start = textarea.selectionStart;
@@ -81,21 +81,45 @@ export function TokenList({ sentence, textareaRef }: TokenListProps) {
       return 'middle';
   };
 
+  useEffect(() => {
+     const onGlobalPointerUp = () => {
+         if (isDragging.current) {
+             handlePointerUp();
+         }
+     };
+     
+     const onGlobalMouseUp = () => {
+         const selection = window.getSelection();
+         if (selection && selection.toString().trim()) {
+             const dragText = selection.toString().trim().replace(/[\r\n]+/g, '');
+             if (dragText && !isDragging.current) {
+                  insertTextAtCursor(dragText);
+                  selection.removeAllRanges();
+             }
+         }
+     };
+
+     const onCardPointerLeave = () => {
+         if (isDragging.current) {
+             handlePointerUp();
+         }
+     };
+
+     window.addEventListener('pointerup', onGlobalPointerUp);
+     window.addEventListener('mouseup', onGlobalMouseUp);
+     window.addEventListener('cardPointerLeave', onCardPointerLeave as EventListener);
+     
+     return () => {
+         window.removeEventListener('pointerup', onGlobalPointerUp);
+         window.removeEventListener('mouseup', onGlobalMouseUp);
+         window.removeEventListener('cardPointerLeave', onCardPointerLeave as EventListener);
+     };
+  }, [dragStartIdx, dragEndIdx, sentence]);
+
   return (
     <div 
         className="flex flex-wrap items-center justify-center text-center leading-[2] gap-y-2 gap-x-0 touch-none py-2"
         onPointerUp={handlePointerUp}
-        onPointerLeave={handlePointerUp}
-        onMouseUp={() => {
-            const selection = window.getSelection();
-            if (selection && selection.toString().trim()) {
-                const dragText = selection.toString().trim().replace(/[\r\n]+/g, '');
-                if (dragText && !isDragging.current) {
-                     insertTextAtCursor(dragText);
-                     selection.removeAllRanges();
-                }
-            }
-        }}
     >
       {sentence.tokens.map((token, index) => {
         const isActive = sentence.activeTokenIndex === index && sentence.status === 'active';

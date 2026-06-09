@@ -17,7 +17,7 @@ export function TranslationArea({ sentenceId, initialText, isActive, textareaRef
   useEffect(() => {
       if (isActive && textareaRef?.current) {
           // Delay to allow animation to settle slightly for smoother UX
-          setTimeout(() => textareaRef.current?.focus(), 50);
+          setTimeout(() => textareaRef.current?.focus({ preventScroll: true }), 50);
       }
   }, [isActive, textareaRef]);
 

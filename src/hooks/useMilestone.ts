@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react';
 import { useDocumentStore } from '../store/useDocumentStore';
 import { useUIStore } from '../store/useUIStore';
 import { exportToTXT } from '../utils/fileExporter';
+import { copyToClipboard } from '../utils/clipboard';
 
 export function useMilestoneTracker() {
   const completedSentences = useDocumentStore((state) => state.completedSentences);
@@ -35,9 +36,11 @@ export function useMilestoneTracker() {
         exportToTXT(docState);
         
         const textToCopy = docState.sentences
-            .map(s => s.translatedText || s.originalText)
-            .join('\n\n');
-        navigator.clipboard.writeText(textToCopy).catch(() => {});
+            .map((s) => s.translatedText.trim())
+            .filter(Boolean)
+            .join('\n');
+        
+        copyToClipboard(textToCopy).catch(() => {});
             
         lastExportTime.current = Date.now();
         showToast('已导出文本并复制到剪贴板。');
