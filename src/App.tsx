@@ -36,7 +36,7 @@ export default function App() {
   useMilestoneTracker();
   useEffect(() => { loadFromIndexedDB().finally(() => setIsInitializing(false)); }, [loadFromIndexedDB]);
 
-  if (isInitializing) return <main className="loading-screen">
+  if (isInitializing) return <main key="restoring" className="loading-screen">
     <section className="ui-panel loading-panel" aria-busy="true">
       <h1 className="ui-section-title">正在恢复工作区…</h1>
       <Button variant="quiet" shape="rounded" onClick={async () => {
@@ -45,20 +45,20 @@ export default function App() {
     </section>
   </main>;
 
-  if (isImporting) return <main className="loading-screen">
+  if (isImporting) return <main key="importing" className="loading-screen">
     <section className="ui-panel loading-panel" aria-busy="true" aria-label="导入原文">
       <div className="loading-heading"><span>正在整理原文…</span><span>{importProgress}%</span></div>
       <div className="loading-track" role="progressbar" aria-label="导入进度"
         aria-valuemin={0} aria-valuemax={100} aria-valuenow={importProgress}>
         <div className="loading-fill" style={{ width: `${importProgress}%` }} />
       </div>
-      <Button variant="danger" shape="rounded" onClick={async () => {
+      <Button variant="quiet" shape="rounded" onClick={async () => {
         await useDocumentStore.getState().clearDocument(); window.location.reload();
       }}>停止并清理缓存</Button>
     </section>
   </main>;
 
-  if (!documentId) return <main className="import-screen">
+  if (!documentId) return <main key="import-form" className="import-screen">
     <section className="import-card" aria-labelledby="app-title">
       <h1 id="app-title" className="import-title">半翻</h1>
       <div className="import-field">
@@ -73,14 +73,14 @@ export default function App() {
           </motion.div>}
         </AnimatePresence>
       </div>
-      <Button variant="ink" shape="rounded" className="import-submit" disabled={!inputText.trim()}
+      <Button variant="primary" shape="rounded" className="import-submit" disabled={!inputText.trim()}
         onClick={() => importDocument(inputText)}>
         进入工作区 <ArrowRight className="ui-icon" aria-hidden="true" />
       </Button>
     </section>
   </main>;
 
-  return <main className="workbench" aria-label="半翻工作区">
+  return <main key="workbench" className="workbench" aria-label="半翻工作区">
     <TopProgressBar /><SentenceStream /><NavigationControls /><ToastNotification />
     {showRibbonPanel && <Suspense fallback={null}><RibbonDeveloperPanel onClose={() => setShowRibbonPanel(false)} /></Suspense>}
   </main>;

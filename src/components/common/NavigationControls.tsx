@@ -11,7 +11,7 @@ import { UI_MOTION } from '../../design/motion';
 import { usePreferencesStore } from '../../store/usePreferencesStore';
 
 const shortcuts = [
-  ['前后切句', 'PgUp / PgDn'],
+  ['前后切句（可长按）', 'PgUp / PgDn'],
   ['上一句', '小键盘 +'],
   ['逐词移动 / 调整选区', '4 / 6'],
   ['上移一行 / 下移一行', '8 / 2'],
@@ -82,10 +82,10 @@ export function NavigationControls() {
     <div ref={helpDock} className="help-dock">
       <AnimatePresence>
         {showShortcuts && <motion.section id="workspace-help" aria-labelledby="help-title"
-          className="ui-panel help-panel overflow-y-auto custom-scrollbar"
+          className="ui-panel help-panel"
           initial={{ opacity: 0, y: 8, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }}
           exit={{ opacity: 0, y: 8, scale: 0.98 }} transition={UI_MOTION.panel}>
-          <div className="help-panel-heading">
+          <div className="help-panel-scroll overflow-y-auto custom-scrollbar"><div className="help-panel-heading">
             <h2 id="help-title" className="ui-section-title">显示设置</h2>
             <Button variant="quiet" shape="rounded" aria-label="关闭帮助" onClick={() => {
               setShowShortcuts(false); helpButton.current?.focus({ preventScroll: true });
@@ -130,9 +130,11 @@ export function NavigationControls() {
           </ul>
           <p className="ui-caption help-copy">数字键指小键盘。按住 5，用 4/6 连续选词；9 扩展当前块，7 收回。也可先按 9 预选，再点按 5。</p>
           <p className="ui-caption help-copy">贴近文字的灰色圆头线标出候选词组，蓝色胶囊表示整个选区。隐藏标记后仍可用 9/7 扩缩。鼠标直接拖选，松开插入。</p>
-          <p className="ui-caption help-copy">小键盘 + 返回上一句，Enter 完成并进入下一句；主键盘加号正常输入。</p>
+          <p className="ui-caption help-copy">Page Up / Page Down 可长按连续翻页，松开即停。小键盘 + 返回上一句，Enter 完成并进入下一句，长按均只执行一次；主键盘加号正常输入。</p>
           <p className="ui-caption help-copy">自动整组选词开启时，进入词组即选整组；7 收回到首个细词，离开该组前保持细选，9 可重新扩组。长引文需按 9 确认。</p>
           <p className="ui-caption help-copy">8/2 按屏幕实际行上下移动，尽量保持横向位置；按住 5 或手动预选时不换行。括号、引号和运算符可用键盘定位；普通停顿标点跳过，但范围抓取仍保留。3 暂无快捷功能。</p>
+          <p className="ui-caption help-copy">翻译进度按已有非空译文的卡片占比统计，不代表审核完成；清空译文会扣除进度。当前页显示正在查看的位置。</p>
+          </div>
         </motion.section>}
       </AnimatePresence>
       <Button ref={helpButton} shape="round" aria-label="显示设置与快捷键" title="显示设置与快捷键"

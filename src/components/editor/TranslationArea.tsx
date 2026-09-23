@@ -54,7 +54,8 @@ export function TranslationArea({ sentenceId, initialText, isActive, textareaRef
                 value={initialText}
                 onChange={handleChange}
                 onKeyDown={handleKeyDown}
-                disabled={!isActive}
+                readOnly={!isActive}
+                tabIndex={isActive ? 0 : -1}
                 placeholder={isActive ? "在此输入..." : ""}
                 className="translation-input col-start-1 row-start-1 w-full h-full bg-transparent resize-none font-medium leading-[1.6] tracking-tight text-gray-800 placeholder:text-gray-400/60 overflow-hidden font-sans text-left p-4 m-0"
                 style={{ wordBreak: 'break-word', overflowWrap: 'anywhere', fontSize: `${translationFontSize}px` }}

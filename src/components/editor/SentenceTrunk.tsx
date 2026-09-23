@@ -4,7 +4,7 @@ import { extractTrunk } from '../../utils/trunkExtractor';
 
 export function SentenceTrunk({ tokens }: { tokens: Token[] }) {
   const trunkTokens = extractTrunk(tokens);
-  return <section className="ui-panel trunk-panel" aria-label="结构主干">
+  return <section className="trunk-panel" aria-label="结构主干">
     <h2 className="trunk-title"><Info className="ui-icon" aria-hidden="true" />结构主干 · 词性提示</h2>
     {trunkTokens.length
       ? <div className="trunk-terms">{trunkTokens.map(token =>

@@ -15,6 +15,7 @@ export function SentenceStream() {
   const prevSentence = useDocumentStore(state => state.prevSentence);
   const [showTrunk, setShowTrunk] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const scrollPositions = useRef(new Map<string, number>());
   const reducedMotion = useReducedMotion();
   useKeyboardShortcuts(textareaRef);
 
@@ -59,7 +60,9 @@ export function SentenceStream() {
       z: radius * Math.cos(angleRad) - radius,
       rotateX: -angleDeg,
       scale: isActive ? 1 : 1 - Math.abs(diff) * 0.05,
-      opacity: isActive ? 1 : Math.max(0, 1 - Math.abs(diff) * 0.25),
+      // Fade into white fog without revealing cards behind this surface.
+      opacity: 1,
+      '--card-fog': Math.min(0.65, Math.abs(diff) * 0.18),
       filter: `blur(${isActive ? 0 : Math.abs(diff) * 0.8}px)`,
       zIndex: 50 - Math.abs(diff),
     };
@@ -80,7 +83,7 @@ export function SentenceStream() {
             transition={reducedMotion ? { duration: 0 } : UI_MOTION.stream}
             className="absolute inset-0 flex items-center justify-center pointer-events-none">
             <div className="sentence-frame" style={{ pointerEvents: isActive ? 'auto' : 'none' }}>
-              <SentenceCard sentence={sentence} isActive={isActive} textareaRef={isActive ? textareaRef : undefined} />
+              <SentenceCard sentence={sentence} isActive={isActive} textareaRef={isActive ? textareaRef : undefined} scrollPositions={scrollPositions.current} />
             </div>
           </motion.div>;
         })}
@@ -88,10 +91,10 @@ export function SentenceStream() {
     </div>
     {currentSentence && <div className="trunk-dock">
       <AnimatePresence>
-        {showTrunk && <motion.div id="sentence-trunk" className="trunk-popover overflow-y-auto custom-scrollbar"
+        {showTrunk && <motion.div id="sentence-trunk" className="ui-panel trunk-popover"
           initial={{ opacity: 0, y: 8, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }}
           exit={{ opacity: 0, y: 8, scale: 0.98 }} transition={UI_MOTION.panel}>
-          <SentenceTrunk tokens={currentSentence.tokens} />
+          <div className="trunk-scroll overflow-y-auto custom-scrollbar"><SentenceTrunk tokens={currentSentence.tokens} /></div>
         </motion.div>}
       </AnimatePresence>
       <Button className="trunk-toggle" aria-expanded={showTrunk} aria-controls="sentence-trunk"

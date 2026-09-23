@@ -13,10 +13,11 @@ import { usePreferencesStore } from '../../store/usePreferencesStore';
 
 interface TokenListProps {
   sentence: Sentence;
+  isActive?: boolean;
   textareaRef?: React.RefObject<HTMLTextAreaElement | null>;
 }
 
-export function TokenList({ sentence, textareaRef }: TokenListProps) {
+export function TokenList({ sentence, textareaRef, isActive = true }: TokenListProps) {
   const { selection } = useSelectionStore(); // Also rerender when temporary fine-selection changes.
   const autoGroups = usePreferencesStore(state => state.autoSelectGroups);
   const local = selection?.sentenceId === sentence.id ? selection : autoGroups ? automaticSelection(sentence) : null;
@@ -24,6 +25,7 @@ export function TokenList({ sentence, textareaRef }: TokenListProps) {
   const sourceRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    if (!isActive) return;
     const cancel = () => {
       if (!drag.current) return;
       drag.current = null;
@@ -59,10 +61,10 @@ export function TokenList({ sentence, textareaRef }: TokenListProps) {
       window.removeEventListener('keydown', key);
       document.removeEventListener('visibilitychange', visibility);
     };
-  }, [sentence.id, textareaRef]);
+  }, [sentence.id, textareaRef, isActive]);
 
   const down = (event: React.PointerEvent, index: number) => {
-    if (event.button !== 0 || !event.isPrimary) return;
+    if (!isActive || event.button !== 0 || !event.isPrimary) return;
     event.preventDefault(); // Preserve the insertion caret/selection in the textarea.
     const textarea = textareaRef?.current;
     drag.current = { pointerId: event.pointerId, target: textarea
@@ -86,7 +88,7 @@ export function TokenList({ sentence, textareaRef }: TokenListProps) {
   const selectedRange = local ?? { start: sentence.activeTokenIndex, end: sentence.activeTokenIndex };
   const renderToken = (index: number) => {
     const token = sentence.tokens[index];
-    const selected = local ? index >= local.start && index <= local.end : index === sentence.activeTokenIndex;
+    const selected = isActive && (local ? index >= local.start && index <= local.end : index === sentence.activeTokenIndex);
     return <TokenItem key={token.id} token={token} index={index} selected={selected}
       onPointerDown={event => down(event, index)} onPointerEnter={event => enter(event, index)} />;
   };
@@ -94,7 +96,7 @@ export function TokenList({ sentence, textareaRef }: TokenListProps) {
   return <div className="w-full min-w-0">
     <div ref={sourceRef} data-source-text data-source-sentence={sentence.id} className="source-flow" aria-label="原文选词区"
       style={{ '--selection-scale': SELECTION_SCALE, '--selection-lift': `-${SELECTION_LIFT}px` } as React.CSSProperties}>
-      <SelectionSurface container={sourceRef} sentence={sentence} selected={selectedRange} />
+      <SelectionSurface container={sourceRef} sentence={sentence} selected={isActive ? selectedRange : { start: -1, end: -1 }} isActive={isActive} />
       {sentence.tokens.map((_, index) => renderToken(index))}
     </div>
   </div>;

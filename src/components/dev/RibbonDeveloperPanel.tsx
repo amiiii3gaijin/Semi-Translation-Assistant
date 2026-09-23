@@ -63,13 +63,14 @@ export default function RibbonDeveloperPanel({ onClose }: { onClose: () => void 
       event.stopPropagation();
       if (event.key === 'Escape') { onClose(); focusEditor(); }
     }}>
-    <section className="ui-panel ribbon-dev-panel custom-scrollbar">
+    <section className="ui-panel ribbon-dev-panel">
         <header><strong>词组线调参</strong><span>高级设置</span></header>
         <div className="ribbon-dev-actions">
           <Button variant="quiet" onClick={() => setLeft(value => !value)}>移到{left ? '右' : '左'}侧</Button>
           <Button variant="quiet" onClick={() => { onClose(); focusEditor(); }}>收起</Button>
           <Button variant="quiet" onClick={focusEditor}>返回键盘操作</Button>
         </div>
+        <div className="ribbon-dev-scroll custom-scrollbar">
         <p className="ui-caption">距离以 25px 原文字号为基准，随字号适配，线宽和抬升保留小字号下限。当前字号 {fontSize}px。面板不改变原文换行。</p>
         {!visible && <p className="ribbon-dev-notice">词组标记已隐藏。<button onClick={() => usePreferencesStore.getState().setShowPhraseMarkers(true)}>显示标记</button></p>}
         <div className="ribbon-dev-comparison" role="group" aria-label="参数对比">
@@ -106,6 +107,7 @@ export default function RibbonDeveloperPanel({ onClose }: { onClose: () => void 
         <p role="status" className="ui-caption">{message}</p>
         {state.storageFailed && <p role="alert" className="ribbon-dev-notice">浏览器未能保存参数，请先复制备份，避免刷新后丢失。</p>}
         {exportText && <details><summary>导出快照（复制时生成）</summary><textarea readOnly aria-label="参数导出快照" value={exportText} onFocus={event => event.target.select()} /></details>}
+        </div>
       </section>
   </aside>;
 }

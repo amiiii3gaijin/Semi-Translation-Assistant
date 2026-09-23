@@ -15,12 +15,15 @@ interface Geometry {
 }
 
 /** One continuous selection surface per visual line, including a one-word range. */
-export function SelectionSurface({ container, sentence, selected }: {
+export function SelectionSurface({ container, sentence, selected, isActive = true }: {
   container: RefObject<HTMLDivElement | null>;
   sentence: Sentence;
   selected: Bounds;
+  isActive?: boolean;
 }) {
   const parameters = useRibbonParameters();
+  const activeRef = useRef(isActive);
+  activeRef.current = isActive;
   const [geometry, setGeometry] = useState<Geometry>({ selected: [], markers: [], fontSize: 25 });
   const liveSurfaces = useRef(new Map<string, RibbonSurface>());
   const surfaceRefs = useRef(new Map<string, (node: HTMLSpanElement | null) => void>());
@@ -32,9 +35,9 @@ export function SelectionSurface({ container, sentence, selected }: {
   const syncRibbons = (forceReading = false) => {
     if (!paths.current.size) return;
     const current = latestGeometry.current;
-    const surfaces = [...liveSurfaces.current.values()];
+    const surfaces = activeRef.current ? [...liveSurfaces.current.values()] : [];
     const readings: RibbonReading[] = [];
-    const diagnostics = ribbonReadings.enabled();
+    const diagnostics = activeRef.current && ribbonReadings.enabled();
     for (const line of current.markers) {
       const path = paths.current.get(line.id);
       if (!path) continue;
@@ -102,7 +105,7 @@ export function SelectionSurface({ container, sentence, selected }: {
   };
   // Clear the previous word's inline white before the new selection is painted.
   useLayoutEffect(() => { syncTextColor(); }, [selected.start, selected.end]);
-  useLayoutEffect(() => { syncRibbons(true); }, [geometry, showPhraseMarkers, parameters]);
+  useLayoutEffect(() => { syncRibbons(true); syncTextColor(); }, [geometry, showPhraseMarkers, parameters, isActive]);
   useEffect(() => {
     const refresh = () => syncRibbons(true);
     window.addEventListener('ribbon-dev-refresh', refresh);
@@ -199,7 +202,7 @@ export function SelectionSurface({ container, sentence, selected }: {
   const transition = reducedMotion ? { duration: 0 } : UI_MOTION.quick;
   return <div className="source-surfaces" aria-hidden="true">
     <AnimatePresence initial={false}>
-      {geometry.selected.map((rect, index) => {
+      {(isActive ? geometry.selected : []).map((rect, index) => {
         const key = index === 0 ? 'selection-primary' : 'selection-row-' + rect.row;
         return <motion.span key={key} className="source-selection-surface"
           ref={surfaceRef(key, rect)}
@@ -229,7 +232,7 @@ export function SelectionSurface({ container, sentence, selected }: {
         ref={node => {
           if (node) {
             paths.current.set(line.id, node);
-            node.setAttribute('d', phraseRibbonPath(line, [...liveSurfaces.current.values()], geometry.fontSize));
+            node.setAttribute('d', phraseRibbonPath(line, isActive ? [...liveSurfaces.current.values()] : [], geometry.fontSize));
           } else paths.current.delete(line.id);
         }}
         fill="none" stroke="currentColor" strokeWidth={line.height} strokeLinecap="round" strokeLinejoin="round"

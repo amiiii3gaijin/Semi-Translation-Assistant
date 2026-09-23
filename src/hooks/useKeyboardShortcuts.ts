@@ -13,6 +13,7 @@ export function useKeyboardShortcuts(textareaRef: React.RefObject<HTMLTextAreaEl
   useEffect(() => {
     let fiveHeld = false;
     let cancelled = false;
+    let lastPageStep = 0;
     let target: TranslationTarget | undefined;
     const vertical = createVisualLineNavigator();
     const select = useSelectionStore.getState().setSelection;
@@ -56,7 +57,15 @@ export function useKeyboardShortcuts(textareaRef: React.RefObject<HTMLTextAreaEl
         e.preventDefault();
         e.stopPropagation();
         cancel();
-        if (e.repeat) return;
+        const pageKey = e.code === 'PageUp' || e.code === 'PageDown';
+        if (e.repeat && !pageKey) return;
+        // Use native key repeat: releasing the key stops immediately, with no
+        // timer or queued page changes. Bound the rate on fast-repeat keyboards.
+        if (pageKey) {
+          const now = performance.now();
+          if (e.repeat && now - lastPageStep < 100) return;
+          lastPageStep = now;
+        }
         if (e.code === 'PageUp' || e.code === 'NumpadAdd') store.prevSentence();
         else {
           if (e.code === 'NumpadEnter') store.markCurrentSentenceCompleted();

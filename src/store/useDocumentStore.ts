@@ -117,11 +117,16 @@ export const useDocumentStore = create<DocumentStore>((set, get) => ({
   },
 
   updateTranslation: (sentenceId: string, text: string) => {
-    set((state) => ({
-      sentences: state.sentences.map((s) =>
-        s.id === sentenceId ? { ...s, translatedText: text } : s
-      ),
-    }));
+    set((state) => {
+      const previous = state.sentences.find(s => s.id === sentenceId);
+      if (!previous || previous.translatedText === text) return state;
+      const delta = Number(!!text.trim()) - Number(!!previous.translatedText.trim());
+      return {
+        sentences: state.sentences.map((s, i) => s.id === sentenceId
+          ? { ...s, translatedText: text, status: i === state.currentActiveIndex ? 'active' as const : text.trim() ? 'completed' as const : 'pending' as const } : s),
+        completedSentences: state.completedSentences + delta,
+      };
+    });
   },
 
   setActiveTokenIndex: (sentenceId: string, tokenIndex: number) => {
@@ -136,17 +141,8 @@ export const useDocumentStore = create<DocumentStore>((set, get) => ({
   },
 
   insertTokenToTranslation: (sentenceId: string, tokenText: string) => {
-    set((state) => {
-      const sentence = state.sentences.find(s => s.id === sentenceId);
-      if (!sentence) return state;
-      
-      const newText = sentence.translatedText + tokenText;
-      return {
-        sentences: state.sentences.map((s) =>
-          s.id === sentenceId ? { ...s, translatedText: newText } : s
-        ),
-      };
-    });
+    const sentence = get().sentences.find(s => s.id === sentenceId);
+    if (sentence) get().updateTranslation(sentenceId, sentence.translatedText + tokenText);
   },
 
   nextSentence: () => {
@@ -188,7 +184,7 @@ export const useDocumentStore = create<DocumentStore>((set, get) => ({
           if(curr && curr.translatedText.trim()){
               sentences[state.currentActiveIndex] = {...curr, status: 'completed'};
           }
-          const completedCount = sentences.filter(s => s.status === 'completed' || s.translatedText.trim() !== '').length;
+          const completedCount = sentences.filter(s => s.translatedText.trim() !== '').length;
           return { sentences, completedSentences: completedCount };
       });
   },
@@ -216,6 +212,7 @@ export const useDocumentStore = create<DocumentStore>((set, get) => ({
           if (i % 15 === 14) await new Promise(resolve => setTimeout(resolve, 0));
         }
         set({ ...storedState, sentences: restored,
+          completedSentences: restored.filter(s => s.translatedText.trim() !== '').length,
           rawText: storedState.rawText ?? restored.map(s => s.originalText).join(''),
           isImporting: false, importProgress: 100 });
       }
@@ -229,10 +226,10 @@ export const useDocumentStore = create<DocumentStore>((set, get) => ({
       const { importDocument, updateTranslation, nextSentence, prevSentence, insertTokenToTranslation, loadFromIndexedDB, saveToIndexedDB, setActiveTokenIndex, markCurrentSentenceCompleted, clearDocument, setOriginalFontSize, setTranslationFontSize, ...stateToSave } = get();
       
       const stateWithTime = { ...stateToSave, lastSavedAt: Date.now() };
-      stateWithTime.completedSentences = stateWithTime.sentences.filter(s => s.status === 'completed' || s.translatedText.trim() !== '').length;
+      stateWithTime.completedSentences = stateWithTime.sentences.filter(s => s.translatedText.trim() !== '').length;
 
       await localforage.setItem('half-translation-state', stateWithTime);
-      set({ lastSavedAt: stateWithTime.lastSavedAt, completedSentences: stateWithTime.completedSentences });
+      if (get().documentId === stateWithTime.documentId) set({ lastSavedAt: stateWithTime.lastSavedAt });
     } catch (e) {
       console.error('Failed to save to DB', e);
     }

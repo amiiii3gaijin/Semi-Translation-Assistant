@@ -13,7 +13,7 @@ export function useMilestoneTracker() {
 
   useEffect(() => {
     if (completedSentences >= lastToastAtCount.current + 10) {
-      showToast('已完成 10 句新进度。按 F2 一键导出/备份进度。');
+      showToast('又有 10 句写入译文。按 F2 一键导出/备份进度。');
       lastToastAtCount.current = completedSentences;
     }
   }, [completedSentences, showToast]);
