@@ -1,124 +1,88 @@
-import React, { useEffect, useState } from 'react';
+import { lazy, Suspense, useEffect, useState } from 'react';
+import { AnimatePresence, motion } from 'motion/react';
+import { ArrowRight, X } from 'lucide-react';
 import { useDocumentStore } from './store/useDocumentStore';
 import { SentenceStream } from './components/editor/SentenceStream';
 import { TopProgressBar } from './components/layout/TopProgressBar';
 import { ToastNotification } from './components/common/ToastNotification';
 import { NavigationControls } from './components/common/NavigationControls';
+import { Button } from './components/common/Button';
 import { useAutoSave } from './hooks/useAutoSave';
 import { useMilestoneTracker } from './hooks/useMilestone';
-import { exportToTXT } from './utils/fileExporter';
-import { motion, AnimatePresence } from 'motion/react';
+import { UI_MOTION } from './design/motion';
+const RibbonDeveloperPanel = lazy(() => import('./components/dev/RibbonDeveloperPanel'));
 
 export default function App() {
-  const loadFromIndexedDB = useDocumentStore((state) => state.loadFromIndexedDB);
-  const importDocument = useDocumentStore((state) => state.importDocument);
-  const documentId = useDocumentStore((state) => state.documentId);
-  
+  const loadFromIndexedDB = useDocumentStore(state => state.loadFromIndexedDB);
+  const importDocument = useDocumentStore(state => state.importDocument);
+  const documentId = useDocumentStore(state => state.documentId);
+  const isImporting = useDocumentStore(state => state.isImporting);
+  const importProgress = useDocumentStore(state => state.importProgress);
   const [inputText, setInputText] = useState('');
   const [isInitializing, setIsInitializing] = useState(true);
-
-  const isImporting = useDocumentStore((state) => state.isImporting);
-  const importProgress = useDocumentStore((state) => state.importProgress);
-
+  const [showRibbonPanel, setShowRibbonPanel] = useState(false);
+  useEffect(() => {
+    const toggle = (event: KeyboardEvent) => {
+      if (event.code !== 'F9' || !event.ctrlKey || !event.altKey || !event.shiftKey || event.metaKey || event.isComposing) return;
+      if (!documentId || isImporting || document.querySelector('dialog[open]')) return;
+      event.preventDefault(); event.stopImmediatePropagation();
+      if (!event.repeat) setShowRibbonPanel(value => !value);
+    };
+    window.addEventListener('keydown', toggle, true);
+    return () => window.removeEventListener('keydown', toggle, true);
+  }, [documentId, isImporting]);
+  useEffect(() => { setShowRibbonPanel(false); }, [documentId]);
   useAutoSave();
   useMilestoneTracker();
+  useEffect(() => { loadFromIndexedDB().finally(() => setIsInitializing(false)); }, [loadFromIndexedDB]);
 
-  useEffect(() => {
-    loadFromIndexedDB().finally(() => setIsInitializing(false));
-  }, [loadFromIndexedDB]);
+  if (isInitializing) return <main className="loading-screen">
+    <section className="ui-panel loading-panel" aria-busy="true">
+      <h1 className="ui-section-title">正在恢复工作区…</h1>
+      <Button variant="quiet" shape="rounded" onClick={async () => {
+        await useDocumentStore.getState().clearDocument(); window.location.reload();
+      }}>重置并清理缓存</Button>
+    </section>
+  </main>;
 
-  if (isInitializing) {
-     return (
-         <div className="flex flex-col w-full h-screen items-center justify-center text-gray-500 gap-4">
-             <div>加载工作区...</div>
-             <button 
-                 onClick={() => {
-                     useDocumentStore.getState().clearDocument();
-                     window.location.reload();
-                 }}
-                 className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-600 text-xs font-semibold rounded-[12px] transition-colors"
-             >
-                 重置并清理缓存
-             </button>
-         </div>
-     );
-  }
-  
-  if (isImporting) {
-     return (
-        <div className="flex flex-col w-full h-screen items-center justify-center text-gray-800">
-             <div className="w-80 glass-panel-heavy p-8 rounded-[32px] shadow-xl flex flex-col gap-4">
-                 <div className="text-sm font-medium flex justify-between tracking-wide">
-                     <span>正在解析文章与底层结构...</span>
-                     <span className="text-gray-800">{importProgress}%</span>
-                 </div>
-                 <div className="w-full bg-gray-200/50 rounded-full h-2 shadow-inner overflow-hidden">
-                     <div className="bg-gray-800 h-2 rounded-full transition-all duration-300" style={{ width: `${importProgress}%` }}></div>
-                 </div>
-                 
-                 <button 
-                     onClick={() => {
-                         useDocumentStore.getState().clearDocument();
-                         window.location.reload();
-                     }}
-                     className="mt-2 w-full py-2.5 bg-red-50 hover:bg-red-100 text-red-500 rounded-[16px] text-sm font-semibold transition-colors"
-                 >
-                     停止并清理缓存
-                 </button>
-             </div>
-        </div>
-     );
-  }
-
-  if (!documentId) {
-    return (
-      <div className="flex flex-col items-center justify-center w-full h-screen p-8 relative z-10 bg-white">
-         <div className="w-full max-w-3xl glass-panel p-12 rounded-[32px] shadow-[0_20px_60px_rgba(0,0,0,0.04)] border border-gray-100 relative flex flex-col items-center text-center">
-             <div className="flex flex-col items-center mb-10 w-full">
-                 <h1 className="text-[40px] font-bold tracking-tight text-gray-900">翻译辅助</h1>
-             </div>
-             
-             <div className="relative w-full mb-10 group">
-                 <textarea 
-                    className="w-full h-80 p-8 glass-panel rounded-[24px] focus:outline-none focus:ring-4 focus:ring-gray-900/5 focus:bg-white/90 transition-all resize-none text-[18px] text-gray-700 leading-relaxed font-sans placeholder:text-gray-400/80 shadow-inner border border-gray-100"
-                    placeholder="在此粘贴或输入原文内容..."
-                    value={inputText}
-                    onChange={e => setInputText(e.target.value)}
-                 />
-                 <AnimatePresence>
-                 {inputText && (
-                     <motion.button
-                         initial={{ opacity: 0, scale: 0.9 }}
-                         animate={{ opacity: 1, scale: 1 }}
-                         exit={{ opacity: 0, scale: 0.9 }}
-                         onClick={() => setInputText('')}
-                         className="absolute top-6 right-6 p-2.5 bg-gray-100/80 hover:bg-white text-gray-500 hover:text-red-500 rounded-full transition-all duration-300 shadow-sm hover:shadow-md backdrop-blur-sm cursor-pointer z-10 group"
-                         title="清空内容"
-                     >
-                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="group-hover:rotate-90 transition-transform duration-500"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
-                     </motion.button>
-                 )}
-                 </AnimatePresence>
-             </div>
-             <button 
-                className="w-full py-4 bg-gray-900 text-white rounded-[24px] hover:bg-black hover:-translate-y-1 hover:shadow-2xl hover:shadow-gray-900/40 transition-all duration-500 font-semibold tracking-wide cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none disabled:shadow-none text-[18px] flex items-center justify-center gap-3 group"
-                onClick={() => importDocument(inputText)}
-                disabled={!inputText.trim()}
-             >
-                进入工作区
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="group-hover:translate-x-1.5 transition-transform duration-500 opacity-80"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
-             </button>
-         </div>
+  if (isImporting) return <main className="loading-screen">
+    <section className="ui-panel loading-panel" aria-busy="true" aria-label="导入原文">
+      <div className="loading-heading"><span>正在整理原文…</span><span>{importProgress}%</span></div>
+      <div className="loading-track" role="progressbar" aria-label="导入进度"
+        aria-valuemin={0} aria-valuemax={100} aria-valuenow={importProgress}>
+        <div className="loading-fill" style={{ width: `${importProgress}%` }} />
       </div>
-    );
-  }
+      <Button variant="danger" shape="rounded" onClick={async () => {
+        await useDocumentStore.getState().clearDocument(); window.location.reload();
+      }}>停止并清理缓存</Button>
+    </section>
+  </main>;
 
-  return (
-    <div className="fixed inset-0 w-full h-full bg-white overflow-hidden">
-      <TopProgressBar />
-      <SentenceStream />
-      <NavigationControls />
-            <ToastNotification />
-    </div>
-  );
+  if (!documentId) return <main className="import-screen">
+    <section className="import-card" aria-labelledby="app-title">
+      <h1 id="app-title" className="import-title">半翻</h1>
+      <div className="import-field">
+        <textarea className="import-textarea custom-scrollbar" aria-label="待翻译原文"
+          placeholder="在此粘贴或输入原文内容…" value={inputText} onChange={event => setInputText(event.target.value)} />
+        <AnimatePresence>
+          {inputText && <motion.div className="import-clear" initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} transition={UI_MOTION.control}>
+            <Button variant="quiet" shape="round" aria-label="清空原文" title="清空原文" onClick={() => setInputText('')}>
+              <X className="ui-icon" aria-hidden="true" />
+            </Button>
+          </motion.div>}
+        </AnimatePresence>
+      </div>
+      <Button variant="ink" shape="rounded" className="import-submit" disabled={!inputText.trim()}
+        onClick={() => importDocument(inputText)}>
+        进入工作区 <ArrowRight className="ui-icon" aria-hidden="true" />
+      </Button>
+    </section>
+  </main>;
+
+  return <main className="workbench" aria-label="半翻工作区">
+    <TopProgressBar /><SentenceStream /><NavigationControls /><ToastNotification />
+    {showRibbonPanel && <Suspense fallback={null}><RibbonDeveloperPanel onClose={() => setShowRibbonPanel(false)} /></Suspense>}
+  </main>;
 }
+

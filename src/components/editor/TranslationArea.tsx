@@ -16,8 +16,8 @@ export function TranslationArea({ sentenceId, initialText, isActive, textareaRef
 
   useEffect(() => {
       if (isActive && textareaRef?.current) {
-          // Delay to allow animation to settle slightly for smoother UX
-          setTimeout(() => textareaRef.current?.focus({ preventScroll: true }), 50);
+          const timer = setTimeout(() => textareaRef.current?.focus({ preventScroll: true }), 50);
+          return () => clearTimeout(timer);
       }
   }, [isActive, textareaRef]);
 
@@ -26,7 +26,7 @@ export function TranslationArea({ sentenceId, initialText, isActive, textareaRef
   };
   
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') {
+    if (e.key === 'Enter' && !e.nativeEvent.isComposing) {
         if (!e.shiftKey) {
             e.preventDefault();
             markCurrentSentenceCompleted();
@@ -49,12 +49,14 @@ export function TranslationArea({ sentenceId, initialText, isActive, textareaRef
             
             <textarea
                 ref={textareaRef}
+                data-sentence-id={sentenceId}
+                aria-label="当前句子的译文"
                 value={initialText}
                 onChange={handleChange}
                 onKeyDown={handleKeyDown}
                 disabled={!isActive}
                 placeholder={isActive ? "在此输入..." : ""}
-                className="col-start-1 row-start-1 w-full h-full bg-transparent resize-none focus:outline-none font-medium leading-[1.6] tracking-tight text-gray-800 placeholder:text-gray-400/60 overflow-hidden font-sans text-left p-4 m-0"
+                className="translation-input col-start-1 row-start-1 w-full h-full bg-transparent resize-none font-medium leading-[1.6] tracking-tight text-gray-800 placeholder:text-gray-400/60 overflow-hidden font-sans text-left p-4 m-0"
                 style={{ wordBreak: 'break-word', overflowWrap: 'anywhere', fontSize: `${translationFontSize}px` }}
             />
         </div>

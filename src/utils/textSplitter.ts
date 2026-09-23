@@ -1,25 +1,22 @@
+import { pairedSpans } from './pairedSpans';
+
+/** Partition source while keeping matched quotations/brackets intact. */
 export function splitTextIntoSentences(rawText: string): string[] {
-  // Split using regex matching Chinese sentence-ending punctuations and newlines, preserving the punctuation.
-  const parts = rawText.split(/([。！？\n]+)/g);
   const sentences: string[] = [];
-  
-  let currentSentence = '';
-  for (const part of parts) {
-    if (/[。！？\n]+/.test(part)) {
-      currentSentence += part;
-      const trimmed = currentSentence.trim();
-      if (trimmed) {
-        sentences.push(trimmed);
-      }
-      currentSentence = '';
-    } else {
-      currentSentence += part;
-    }
+  let start = 0;
+  const pairs = pairedSpans(rawText);
+  for (const match of rawText.matchAll(/[。！？\r\n]+/g)) {
+    if (pairs.some(pair => pair.start < match.index! && pair.end > match.index!)) continue;
+    const end = match.index! + match[0].length;
+    const part = rawText.slice(start, end);
+    if (!part.trim() && sentences.length) sentences[sentences.length - 1] += part;
+    else if (part.trim()) sentences.push(part);
+    else continue; // Leading blank lines belong to the next slice.
+    start = end;
   }
-  
-  if (currentSentence.trim()) {
-    sentences.push(currentSentence.trim());
-  }
-  
+  const tail = rawText.slice(start);
+  if (tail.trim()) sentences.push(tail);
+  else if (tail && sentences.length) sentences[sentences.length - 1] += tail;
   return sentences;
 }
+

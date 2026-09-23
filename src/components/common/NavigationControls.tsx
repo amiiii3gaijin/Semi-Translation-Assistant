@@ -1,214 +1,153 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { AnimatePresence, motion } from 'motion/react';
+import { ChevronDown, ChevronUp, Copy, Download, Info, X } from 'lucide-react';
 import { useDocumentStore } from '../../store/useDocumentStore';
 import { useUIStore } from '../../store/useUIStore';
-import { exportToTXT } from '../../utils/fileExporter';
-import { motion, AnimatePresence } from 'motion/react';
-
+import { exportToTXT, translationText } from '../../utils/fileExporter';
 import { copyToClipboard } from '../../utils/clipboard';
+import { Button } from './Button';
+import { ExitDialog } from './ExitDialog';
+import { UI_MOTION } from '../../design/motion';
+import { usePreferencesStore } from '../../store/usePreferencesStore';
+
+const shortcuts = [
+  ['前后切句', 'PgUp / PgDn'],
+  ['上一句', '小键盘 +'],
+  ['逐词移动 / 调整选区', '4 / 6'],
+  ['上移一行 / 下移一行', '8 / 2'],
+  ['扩成词组 / 收回', '9 / 7'],
+  ['按下选择，松开插入', '5'],
+  ['取消预选 / 本次抓取', '1'],
+  ['完成并切到下一句', 'Enter'],
+  ['换行', 'Shift + Enter'],
+  ['导出并复制', 'F2'],
+];
 
 export function NavigationControls() {
-    const nextSentence = useDocumentStore((state) => state.nextSentence);
-    const prevSentence = useDocumentStore((state) => state.prevSentence);
-    const clearDocument = useDocumentStore((state) => state.clearDocument);
-    const documentState = useDocumentStore((state) => state);
-    
-    // Font settings
-    const originalFontSize = useDocumentStore((state) => state.originalFontSize);
-    const setOriginalFontSize = useDocumentStore((state) => state.setOriginalFontSize);
-    const translationFontSize = useDocumentStore((state) => state.translationFontSize);
-    const setTranslationFontSize = useDocumentStore((state) => state.setTranslationFontSize);
-    
-    const [showShortcuts, setShowShortcuts] = useState(false);
-    const [showExitConfirm, setShowExitConfirm] = useState(false);
-    
-    const handleConfirmExit = () => {
-        clearDocument();
-        setShowExitConfirm(false);
+  const nextSentence = useDocumentStore(state => state.nextSentence);
+  const prevSentence = useDocumentStore(state => state.prevSentence);
+  const clearDocument = useDocumentStore(state => state.clearDocument);
+  const currentIndex = useDocumentStore(state => state.currentActiveIndex);
+  const total = useDocumentStore(state => state.totalSentences);
+  const originalFontSize = useDocumentStore(state => state.originalFontSize);
+  const translationFontSize = useDocumentStore(state => state.translationFontSize);
+  const setOriginalFontSize = useDocumentStore(state => state.setOriginalFontSize);
+  const setTranslationFontSize = useDocumentStore(state => state.setTranslationFontSize);
+  const [showShortcuts, setShowShortcuts] = useState(false);
+  const autoSelectGroups = usePreferencesStore(state => state.autoSelectGroups);
+  const { spaceCapturedWords, showPhraseMarkers, setSpaceCapturedWords, setShowPhraseMarkers } = usePreferencesStore();
+  const [showExitConfirm, setShowExitConfirm] = useState(false);
+  const helpDock = useRef<HTMLDivElement>(null);
+  const helpButton = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => {
+    if (!showShortcuts) return;
+    const outside = (event: PointerEvent) => {
+      if (!helpDock.current?.contains(event.target as Node)) setShowShortcuts(false);
     };
+    const key = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setShowShortcuts(false);
+        helpButton.current?.focus({ preventScroll: true });
+      }
+    };
+    document.addEventListener('pointerdown', outside);
+    document.addEventListener('keydown', key);
+    return () => {
+      document.removeEventListener('pointerdown', outside);
+      document.removeEventListener('keydown', key);
+    };
+  }, [showShortcuts]);
 
-    return (
-        <>
-            <AnimatePresence>
-                {showExitConfirm && (
-                    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
-                        <motion.div 
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            exit={{ opacity: 0 }}
-                            className="absolute inset-0 bg-gray-900/40 backdrop-blur-sm pointer-events-auto"
-                            onClick={() => setShowExitConfirm(false)}
-                        />
-                        <motion.div 
-                            initial={{ scale: 0.95, opacity: 0, y: 10 }}
-                            animate={{ scale: 1, opacity: 1, y: 0 }}
-                            exit={{ scale: 0.95, opacity: 0, y: 10 }}
-                            className="bg-white rounded-[32px] shadow-2xl p-8 max-w-sm w-full relative z-10 border border-gray-100 flex flex-col pointer-events-auto"
-                        >
-                            <h3 className="text-[22px] font-bold text-gray-900 mb-3 tracking-tight">退出工作区</h3>
-                            <p className="text-gray-500 mb-8 font-medium text-[15px] leading-relaxed">确定要退出工作区吗？尚未导出的所有翻译进度将会永久丢失。</p>
-                            <div className="flex gap-3 justify-end w-full">
-                                <button 
-                                    onClick={() => setShowExitConfirm(false)}
-                                    className="px-6 py-2.5 rounded-[12px] font-semibold text-gray-500 hover:text-gray-800 hover:bg-gray-100 transition-all text-[15px]"
-                                >
-                                    取消
-                                </button>
-                                <button 
-                                    onClick={handleConfirmExit}
-                                    className="px-6 py-2.5 rounded-[12px] font-semibold text-white bg-blue-500 hover:bg-blue-600 shadow-lg shadow-blue-500/30 hover:shadow-xl hover:shadow-blue-500/40 transition-all text-[15px]"
-                                >
-                                    确认退出
-                                </button>
-                            </div>
-                        </motion.div>
-                    </div>
-                )}
-            </AnimatePresence>
+  return <>
+    {showExitConfirm && <ExitDialog onClose={() => setShowExitConfirm(false)} onConfirm={async () => {
+      await clearDocument();
+      setShowExitConfirm(false);
+    }} />}
+    <div className="toolbar-left">
+      <Button aria-label="退出工作区" title="退出工作区" onClick={() => { setShowShortcuts(false); setShowExitConfirm(true); }}>
+        <X className="ui-icon" aria-hidden="true" /><span className="toolbar-label">退出工作区</span>
+      </Button>
+    </div>
+    <div className="toolbar-right">
+      <Button aria-label="复制成果" title="复制成果" onClick={async () => {
+        const success = await copyToClipboard(translationText(useDocumentStore.getState()));
+        useUIStore.getState().showToast(success ? '已复制全部译文。' : '复制失败，请重试。');
+      }}><Copy className="ui-icon" aria-hidden="true" /><span className="toolbar-label">复制成果</span></Button>
+      <Button aria-label="导出译文" title="导出译文" onClick={() => exportToTXT(useDocumentStore.getState())}>
+        <Download className="ui-icon" aria-hidden="true" /><span className="toolbar-label">一键导出</span>
+      </Button>
+    </div>
 
-            {/* Symmetrical Close Button */}
-            <div className="absolute top-6 left-6 z-50">
-                <button 
-                    onClick={() => setShowExitConfirm(true)}
-                    title="关闭并清空工作区"
-                    className="flex items-center gap-2 px-5 py-2 glass-panel-heavy text-sm font-semibold text-gray-700 rounded-full cursor-pointer hover:bg-white hover:-translate-y-0.5 hover:shadow-xl transition-all duration-300 shadow-md border-white group"
-                >
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-gray-400 group-hover:text-red-500 group-hover:rotate-90 transition-all duration-300"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
-                    退出工作区
-                </button>
+    <div ref={helpDock} className="help-dock">
+      <AnimatePresence>
+        {showShortcuts && <motion.section id="workspace-help" aria-labelledby="help-title"
+          className="ui-panel help-panel overflow-y-auto custom-scrollbar"
+          initial={{ opacity: 0, y: 8, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }}
+          exit={{ opacity: 0, y: 8, scale: 0.98 }} transition={UI_MOTION.panel}>
+          <div className="help-panel-heading">
+            <h2 id="help-title" className="ui-section-title">显示设置</h2>
+            <Button variant="quiet" shape="rounded" aria-label="关闭帮助" onClick={() => {
+              setShowShortcuts(false); helpButton.current?.focus({ preventScroll: true });
+            }}><X className="ui-icon" aria-hidden="true" /></Button>
+          </div>
+          <div className="help-settings">
+            <label className="preference-toggle">
+              <span>自动整组选词</span>
+              <input type="checkbox" role="switch" checked={autoSelectGroups}
+                onChange={event => usePreferencesStore.getState().setAutoSelectGroups(event.target.checked)} />
+            </label>
+            <label className="preference-toggle">
+              <span>显示词组标记</span>
+              <input type="checkbox" role="switch" checked={showPhraseMarkers}
+                onChange={event => setShowPhraseMarkers(event.target.checked)} />
+            </label>
+            <div>
+              <label className="preference-toggle">
+                <span>抓取时按细词加空格</span>
+                <input type="checkbox" role="switch" checked={spaceCapturedWords}
+                  onChange={event => setSpaceCapturedWords(event.target.checked)} />
+              </label>
+              <p className="ui-caption help-copy">只影响新抓取的内容，保留原有空白与引用格式。</p>
             </div>
-            
-            <div className="absolute top-6 right-6 z-50 flex gap-3">
-                <button 
-                    onClick={async () => {
-                        const documentState = useDocumentStore.getState();
-                        const textToCopy = documentState.sentences
-                            .map(s => s.translatedText.trim())
-                            .filter(Boolean)
-                            .join('\n');
-                        
-                        const success = await copyToClipboard(textToCopy);
-                        if (success) {
-                            useUIStore.getState().showToast('已复制全部内容到剪贴板。');
-                        } else {
-                            useUIStore.getState().showToast('复制失败，请重试。');
-                        }
-                    }}
-                    className="flex items-center gap-2 px-5 py-2 glass-panel-heavy text-sm font-semibold text-gray-800 rounded-full cursor-pointer hover:bg-white/95 hover:-translate-y-0.5 hover:shadow-xl transition-all duration-300 shadow-md border-white group"
-                >
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-gray-500 group-hover:text-blue-500 group-hover:scale-110 transition-all duration-300"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
-                    复制成果
-                </button>
-                <button 
-                    onClick={() => exportToTXT(documentState)}
-                    className="flex items-center gap-2 px-5 py-2 glass-panel-heavy text-sm font-semibold text-gray-800 rounded-full cursor-pointer hover:bg-white/95 hover:-translate-y-0.5 hover:shadow-xl transition-all duration-300 shadow-md border-white group"
-                >
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-gray-500 group-hover:text-blue-500 group-hover:scale-110 transition-all duration-300"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10" className="group-hover:translate-y-1 transition-transform duration-300"/><line x1="12" x2="12" y1="15" y2="3" className="group-hover:translate-y-1 transition-transform duration-300"/></svg>
-                    一键导出
-                </button>
-            </div>
-            
-            <div className="absolute bottom-8 left-8 z-50 flex flex-col gap-4">
-                <AnimatePresence>
-                    {showShortcuts && (
-                        <motion.div 
-                            initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                            animate={{ opacity: 1, y: 0, scale: 1 }}
-                            exit={{ opacity: 0, y: 10, scale: 0.95, pointerEvents: 'none' }}
-                            className="bg-white/80 backdrop-blur-xl p-6 rounded-[32px] shadow-[0_20px_60px_rgba(0,0,0,0.15)] w-[320px] border border-white text-gray-700 origin-bottom-left absolute bottom-[72px] left-0"
-                        >
-                            <div className="space-y-6">
-                                {/* Font Size Controls */}
-                                <div>
-                                    <div className="font-bold text-sm mb-4 flex items-center gap-2 text-gray-800 tracking-wide uppercase">
-                                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-gray-500"><polyline points="4 7 4 4 20 4 20 7"/><line x1="9" x2="15" y1="20" y2="20"/><line x1="12" x2="12" y1="4" y2="20"/></svg>
-                                        显示设置
-                                    </div>
-                                    <div className="space-y-4">
-                                        <div className="flex flex-col gap-1.5">
-                                            <div className="flex justify-between items-center text-[11px] font-medium text-gray-500">
-                                                <span>原文大小</span>
-                                                <span>{originalFontSize}px</span>
-                                            </div>
-                                            <input 
-                                                type="range" 
-                                                min="16" 
-                                                max="40" 
-                                                value={originalFontSize}
-                                                onChange={(e) => setOriginalFontSize(Number(e.target.value))}
-                                                className="w-full accent-blue-500 h-1.5 bg-gray-200 rounded-lg appearance-none cursor-pointer"
-                                            />
-                                        </div>
-                                        <div className="flex flex-col gap-1.5">
-                                            <div className="flex justify-between items-center text-[11px] font-medium text-gray-500">
-                                                <span>翻译文本大小</span>
-                                                <span>{translationFontSize}px</span>
-                                            </div>
-                                            <input 
-                                                type="range" 
-                                                min="16" 
-                                                max="40" 
-                                                value={translationFontSize}
-                                                onChange={(e) => setTranslationFontSize(Number(e.target.value))}
-                                                className="w-full accent-blue-500 h-1.5 bg-gray-200 rounded-lg appearance-none cursor-pointer"
-                                            />
-                                        </div>
-                                    </div>
-                                </div>
-                                
-                                <div className="h-[1px] w-full bg-gray-200/50" />
-                                
-                                {/* Shortcuts */}
-                                <div>
-                                    <div className="font-bold text-sm mb-3 flex items-center gap-2 text-gray-800 tracking-wide uppercase">
-                                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-gray-500"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="M6 8h.01"/><path d="M10 8h.01"/><path d="M14 8h.01"/><path d="M18 8h.01"/><path d="M8 12h.01"/><path d="M12 12h.01"/><path d="M16 12h.01"/><path d="M7 16h10"/></svg>
-                                        快捷键指南
-                                    </div>
-                                    <ul className="space-y-3 text-[11px] font-medium opacity-90">
-                                        <li className="flex items-center justify-between">
-                                            <span className="text-gray-500">上下翻句</span>
-                                            <div className="flex gap-1"><kbd className="bg-white/80 border border-gray-200/60 rounded px-1.5 py-0.5 shadow-sm text-gray-700">PgUp</kbd><span className="text-gray-300">/</span><kbd className="bg-white/80 border border-gray-200/60 rounded px-1.5 py-0.5 shadow-sm text-gray-700">PgDn</kbd><span className="text-gray-300">/</span><kbd className="bg-white/80 border border-gray-200/60 rounded px-1.5 py-0.5 shadow-sm text-gray-700">Enter</kbd></div>
-                                        </li>
-                                        <li className="flex items-center justify-between">
-                                            <span className="text-gray-500">左右平移焦点</span>
-                                            <div className="flex gap-1"><kbd className="bg-white/80 border border-gray-200/60 rounded px-1.5 py-0.5 shadow-sm text-gray-700">4</kbd><span className="text-gray-300">/</span><kbd className="bg-white/80 border border-gray-200/60 rounded px-1.5 py-0.5 shadow-sm text-gray-700">6</kbd></div>
-                                        </li>
-                                        <li className="flex items-center justify-between">
-                                            <span className="text-gray-500">跨行跳跃</span>
-                                            <div className="flex gap-1"><kbd className="bg-white/80 border border-gray-200/60 rounded px-1.5 py-0.5 shadow-sm text-gray-700">8</kbd><span className="text-gray-300">/</span><kbd className="bg-white/80 border border-gray-200/60 rounded px-1.5 py-0.5 shadow-sm text-gray-700">2</kbd></div>
-                                        </li>
-                                        <li className="flex items-center justify-between">
-                                            <span className="text-blue-600 font-bold">插入当前词</span>
-                                            <kbd className="bg-blue-500 border border-blue-600 rounded px-2 py-0.5 shadow-sm text-white font-bold">5</kbd>
-                                        </li>
-                                    </ul>
-                                </div>
-                            </div>
-                        </motion.div>
-                    )}
-                </AnimatePresence>
-                
-                <button 
-                    onClick={() => setShowShortcuts(prev => !prev)}
-                    className="w-[54px] h-[54px] flex items-center justify-center bg-white/80 backdrop-blur-xl border border-white rounded-full shadow-[0_8px_30px_rgba(0,0,0,0.12)] hover:shadow-[0_12px_40px_rgba(0,0,0,0.16)] text-gray-500 hover:text-blue-500 hover:-translate-y-1 transition-all duration-300"
-                >
-                    <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
-                </button>
-            </div>
-            
-            <div className="absolute bottom-8 right-8 z-50 flex gap-3">
-                 <button 
-                     onClick={() => prevSentence()}
-                     className="w-[52px] h-[52px] flex items-center justify-center bg-white/70 backdrop-blur-xl border border-white/50 rounded-full shadow-lg text-gray-600 hover:bg-white hover:text-gray-900 transition-all duration-300 text-xl group hover:-translate-y-1 hover:shadow-xl hover:shadow-gray-900/5"
-                 >
-                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="group-hover:-translate-y-1.5 group-hover:scale-110 transition-transform duration-500"><path d="m18 15-6-6-6 6"/></svg>
-                 </button>
-                 <button 
-                     onClick={() => nextSentence()}
-                     className="w-[52px] h-[52px] flex items-center justify-center bg-blue-500 border border-blue-400 rounded-full shadow-lg shadow-blue-500/30 text-white hover:bg-blue-600 transition-all duration-300 text-xl group hover:translate-y-1 hover:shadow-xl hover:shadow-blue-500/40"
-                 >
-                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="group-hover:translate-y-1.5 group-hover:scale-110 transition-transform duration-500"><path d="m6 9 6 6 6-6"/></svg>
-                 </button>
-            </div>
-        </>
-    );
+            <label>
+              <span className="help-setting-label"><span>原文字号</span><span>{originalFontSize}px</span></span>
+              <input className="ui-range" type="range" min="16" max="40" value={originalFontSize}
+                onChange={event => setOriginalFontSize(Number(event.target.value))} />
+            </label>
+            <label>
+              <span className="help-setting-label"><span>译文字号</span><span>{translationFontSize}px</span></span>
+              <input className="ui-range" type="range" min="16" max="40" value={translationFontSize}
+                onChange={event => setTranslationFontSize(Number(event.target.value))} />
+            </label>
+          </div>
+          <div className="help-divider" />
+          <h3 className="ui-section-title">快捷键</h3>
+          <p className="ui-caption help-copy">高级词组线调参：Ctrl + Alt + Shift + F9 打开或关闭。</p>
+          <ul className="shortcut-list">
+            {shortcuts.map(([label, key]) => <li key={key}><span>{label}</span>
+              <kbd className={key === '5' ? 'shortcut-primary' : undefined}>{key}</kbd></li>)}
+          </ul>
+          <p className="ui-caption help-copy">数字键指小键盘。按住 5，用 4/6 连续选词；9 扩展当前块，7 收回。也可先按 9 预选，再点按 5。</p>
+          <p className="ui-caption help-copy">贴近文字的灰色圆头线标出候选词组，蓝色胶囊表示整个选区。隐藏标记后仍可用 9/7 扩缩。鼠标直接拖选，松开插入。</p>
+          <p className="ui-caption help-copy">小键盘 + 返回上一句，Enter 完成并进入下一句；主键盘加号正常输入。</p>
+          <p className="ui-caption help-copy">自动整组选词开启时，进入词组即选整组；7 收回到首个细词，离开该组前保持细选，9 可重新扩组。长引文需按 9 确认。</p>
+          <p className="ui-caption help-copy">8/2 按屏幕实际行上下移动，尽量保持横向位置；按住 5 或手动预选时不换行。括号、引号和运算符可用键盘定位；普通停顿标点跳过，但范围抓取仍保留。3 暂无快捷功能。</p>
+        </motion.section>}
+      </AnimatePresence>
+      <Button ref={helpButton} shape="round" aria-label="显示设置与快捷键" title="显示设置与快捷键"
+        aria-expanded={showShortcuts} aria-controls="workspace-help" onClick={() => setShowShortcuts(value => !value)}>
+        <Info className="ui-icon" aria-hidden="true" />
+      </Button>
+    </div>
+    <nav className="sentence-navigation" aria-label="句子导航">
+      <Button shape="round" aria-label="上一句" title="上一句 · 小键盘 + / PageUp" disabled={currentIndex <= 0} onClick={prevSentence}>
+        <ChevronUp className="ui-icon" aria-hidden="true" />
+      </Button>
+      <Button variant="primary" shape="round" aria-label="下一句" title="下一句 · PageDown" disabled={currentIndex >= total - 1} onClick={nextSentence}>
+        <ChevronDown className="ui-icon" aria-hidden="true" />
+      </Button>
+    </nav>
+  </>;
 }
+

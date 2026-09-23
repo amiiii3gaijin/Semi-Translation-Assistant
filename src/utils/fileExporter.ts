@@ -12,10 +12,7 @@ export function exportToJSON(documentState: DocumentState) {
 }
 
 export function exportToTXT(documentState: DocumentState) {
-  const text = documentState.sentences
-    .map((s) => s.translatedText.trim())
-    .filter(Boolean)
-    .join('\n');
+  const text = translationText(documentState);
   const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
@@ -23,4 +20,9 @@ export function exportToTXT(documentState: DocumentState) {
   a.download = `Half_Translation_Export_${Date.now()}.txt`;
   a.click();
   URL.revokeObjectURL(url);
+}
+
+export function translationText(documentState: DocumentState): string {
+  return documentState.sentences.map(s => s.translatedText)
+    .filter(text => text.trim().length > 0).join('\n');
 }

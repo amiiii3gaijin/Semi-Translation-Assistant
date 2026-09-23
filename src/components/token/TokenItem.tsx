@@ -1,45 +1,40 @@
+import React from 'react';
 import { Token } from '../../types';
 import { clsx } from 'clsx';
-import { twMerge } from 'tailwind-merge';
 
 interface TokenItemProps {
-  key?: string | number;
   token: Token;
-  isActive: boolean;
-  dragPos?: 'single' | 'start' | 'middle' | 'end' | null;
-  onPointerDown?: () => void;
-  onPointerEnter?: () => void;
+  index: number;
+  selected: boolean;
+  onPointerDown?: (event: React.PointerEvent) => void;
+  onPointerEnter?: (event: React.PointerEvent) => void;
 }
 
-export function TokenItem({ token, isActive, dragPos, onPointerDown, onPointerEnter }: TokenItemProps) {
-  let dragClasses = '';
-  const shouldScale = !token.isCitation;
-  const layoutClass = token.isCitation ? "inline box-decoration-clone px-[4px] mx-[1px]" : "inline-block px-[4px] mx-[1px]";
-
-  if (dragPos) {
-      if (dragPos === 'single') dragClasses = `bg-blue-500 text-white rounded-[10px] shadow-lg shadow-blue-500/30 z-20 relative font-bold ${shouldScale ? 'transform scale-105' : ''}`;
-      else if (dragPos === 'start') dragClasses = 'bg-blue-500 text-white rounded-l-[12px] rounded-r-[4px] z-20 relative font-bold';
-      else if (dragPos === 'middle') dragClasses = 'bg-blue-500 text-white rounded-[4px] z-20 relative font-bold';
-      else if (dragPos === 'end') dragClasses = 'bg-blue-500 text-white rounded-r-[12px] rounded-l-[4px] z-20 relative font-bold';
-  } else if (isActive) {
-      dragClasses = `bg-blue-500 text-white font-bold shadow-lg shadow-blue-500/30 rounded-[10px] z-20 relative ${shouldScale ? 'transform scale-[1.12] -translate-y-[1px]' : ''}`;
-  } else {
-      dragClasses = token.isPunctuation ? 'text-gray-400' : 'hover:bg-black/5 text-gray-800 rounded-lg hover:shadow-sm';
-  }
-
-  return (
-    <span
-      onPointerDown={onPointerDown}
-      onPointerEnter={onPointerEnter}
-      className={twMerge(
-        clsx(
-          "cursor-pointer transition-all duration-150 select-none",
-          layoutClass,
-          dragClasses
-        )
-      )}
-    >
-      {token.text}
-    </span>
-  );
+/** Long atomic citations keep a single selection identity, but their presentation
+ * can wrap into small fragments so every selected fragment can lift consistently. */
+export function TokenItem({ token, index, selected, onPointerDown, onPointerEnter }: TokenItemProps) {
+  const fragmented = token.isCitation || token.text.length > 24;
+  const pieces = fragmented
+    ? (token.text.match(/\s+|\S+/gu) ?? []).flatMap(piece => {
+        if (/^\s+$/u.test(piece) || piece.length <= 16) return [piece];
+        const letters = Array.from(piece);
+        const chunks: string[] = [];
+        for (let i = 0; i < letters.length; i += 8) chunks.push(letters.slice(i, i + 8).join(''));
+        return chunks;
+      })
+    : [token.text];
+  return <>{pieces.map((piece, part) => {
+    const whitespace = /^\s+$/u.test(piece);
+    return <span key={part} data-source-token={index} data-source-space={whitespace || undefined}
+      onPointerDown={onPointerDown} onPointerEnter={onPointerEnter}
+      className={clsx('source-token-slot', {
+        'source-token-space': whitespace, 'source-token-fragment': fragmented,
+      })}>
+      <span className={clsx('source-token-face', {
+        'source-token-selected': selected,
+        'source-token-punctuation': token.isPunctuation && !selected,
+      })}>{piece}</span>
+    </span>;
+  })}</>;
 }
+

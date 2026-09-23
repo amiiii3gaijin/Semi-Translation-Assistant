@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { useDocumentStore } from '../store/useDocumentStore';
 import { useUIStore } from '../store/useUIStore';
-import { exportToTXT } from '../utils/fileExporter';
+import { exportToTXT, translationText } from '../utils/fileExporter';
 import { copyToClipboard } from '../utils/clipboard';
 
 export function useMilestoneTracker() {
@@ -35,10 +35,7 @@ export function useMilestoneTracker() {
         const docState = useDocumentStore.getState();
         exportToTXT(docState);
         
-        const textToCopy = docState.sentences
-            .map((s) => s.translatedText.trim())
-            .filter(Boolean)
-            .join('\n');
+        const textToCopy = translationText(docState);
         
         copyToClipboard(textToCopy).catch(() => {});
             
