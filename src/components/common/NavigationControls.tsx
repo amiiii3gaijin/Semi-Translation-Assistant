@@ -35,6 +35,7 @@ export function NavigationControls() {
   const setTranslationFontSize = useDocumentStore(state => state.setTranslationFontSize);
   const [showShortcuts, setShowShortcuts] = useState(false);
   const autoSelectGroups = usePreferencesStore(state => state.autoSelectGroups);
+  const autoAdvanceAfterCapture = usePreferencesStore(state => state.autoAdvanceAfterCapture);
   const { spaceCapturedWords, showPhraseMarkers, setSpaceCapturedWords, setShowPhraseMarkers } = usePreferencesStore();
   const [showExitConfirm, setShowExitConfirm] = useState(false);
   const helpDock = useRef<HTMLDivElement>(null);
@@ -92,6 +93,14 @@ export function NavigationControls() {
             }}><X className="ui-icon" aria-hidden="true" /></Button>
           </div>
           <div className="help-settings">
+            <div>
+              <label className="preference-toggle">
+                <span>抓取后自动步进</span>
+                <input type="checkbox" role="switch" checked={autoAdvanceAfterCapture}
+                  onChange={event => usePreferencesStore.getState().setAutoAdvanceAfterCapture(event.target.checked)} />
+              </label>
+              <p className="ui-caption help-copy">关闭后，鼠标或小键盘 5 抓取完成时，不再自动跳到邻近词。</p>
+            </div>
             <label className="preference-toggle">
               <span>自动整组选词</span>
               <input type="checkbox" role="switch" checked={autoSelectGroups}

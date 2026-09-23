@@ -35,7 +35,9 @@ export function insertSourceText(sentenceId: string, text: string, sourceEnd: nu
       textarea.setSelectionRange(caret, caret);
     }
   });
-  store.setActiveTokenIndex(sentenceId, nextWord(sentence.tokens, sourceEnd, 1)
-    ?? nextWord(sentence.tokens, sourceEnd + 1, -1) ?? 0);
+  if (usePreferencesStore.getState().autoAdvanceAfterCapture) {
+    store.setActiveTokenIndex(sentenceId, nextWord(sentence.tokens, sourceEnd, 1)
+      ?? nextWord(sentence.tokens, sourceEnd + 1, -1) ?? 0);
+  }
   return true;
 }
