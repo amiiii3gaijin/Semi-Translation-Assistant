@@ -9,6 +9,8 @@
     "preview": "vite preview",
     "clean": "rm -rf dist server.js",
     "lint": "tsc --noEmit",
+    "tokenizer:report": "tsx scripts/tokenizer-report.ts",
+    "tokenizer:check": "tsx scripts/parser-regression.ts",
     "analyze": "node local-only/fuck-u-code-main/bin/fuck-u-code.js analyze local-only/fuck-u-code-main/src --format markdown > local-only/analyze-result.md"
   },
   "dependencies": {

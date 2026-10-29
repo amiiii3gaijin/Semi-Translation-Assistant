@@ -2,6 +2,10 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
 interface Preferences {
+  captureUnit: 'word' | 'group';
+  progressMode: 'filled' | 'position';
+  setCaptureUnit: (value: 'word' | 'group') => void;
+  setProgressMode: (value: 'filled' | 'position') => void;
   spaceCapturedWords: boolean;
   showPhraseMarkers: boolean;
   autoSelectGroups: boolean;
@@ -13,6 +17,10 @@ interface Preferences {
 }
 
 export const usePreferencesStore = create<Preferences>()(persist(set => ({
+  captureUnit: 'group',
+  progressMode: 'filled',
+  setCaptureUnit: captureUnit => set({ captureUnit }),
+  setProgressMode: progressMode => set({ progressMode }),
   spaceCapturedWords: false,
   showPhraseMarkers: true,
   autoSelectGroups: true,

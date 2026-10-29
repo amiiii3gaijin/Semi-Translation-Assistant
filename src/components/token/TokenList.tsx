@@ -70,6 +70,7 @@ export function TokenList({ sentence, textareaRef, isActive = true }: TokenListP
     drag.current = { pointerId: event.pointerId, target: textarea
       ? { start: textarea.selectionStart, end: textarea.selectionEnd, value: textarea.value } : undefined };
     useDocumentStore.getState().setActiveTokenIndex(sentence.id, index);
+    useSelectionStore.getState().setEntry({ sentenceId: sentence.id, index });
     useSelectionStore.getState().setSelection(singleSelection(sentence, index, 'mouse'));
   };
   const enter = (event: React.PointerEvent, index: number) => {

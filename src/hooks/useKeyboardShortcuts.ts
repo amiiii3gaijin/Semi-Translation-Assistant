@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import { useDocumentStore } from '../store/useDocumentStore';
 import { useSelectionStore } from '../store/useSelectionStore';
-import { expandSelection, moveSelection, nextWord, shrinkSelection, singleSelection } from '../utils/sourceSelection';
+import { expandSelection, moveSelection, moveGroupedSelection, nextWord, shrinkSelection, singleSelection } from '../utils/sourceSelection';
 import { insertSourceText, TranslationTarget } from '../utils/insertSourceText';
 import { captureText } from '../utils/captureText';
 import { createVisualLineNavigator } from '../utils/visualLineNavigation';
@@ -48,6 +48,7 @@ export function useKeyboardShortcuts(textareaRef: React.RefObject<HTMLTextAreaEl
         const next = vertical.move(sentence, e.code === 'Numpad8' ? -1 : 1);
         if (next !== null) {
           select(null);
+          useSelectionStore.getState().setEntry({ sentenceId: sentence.id, index: next });
           store.setActiveTokenIndex(sentence.id, next);
         }
         return;
@@ -107,14 +108,19 @@ export function useKeyboardShortcuts(textareaRef: React.RefObject<HTMLTextAreaEl
       if (e.code === 'Numpad4' || e.code === 'Numpad6') {
         const direction = e.code === 'Numpad4' ? -1 : 1;
         if (fiveHeld && current?.mode === 'keyboard') {
-          const next = moveSelection(current, sentence.tokens, direction);
+          const next = usePreferencesStore.getState().captureUnit === 'group'
+            ? moveGroupedSelection(current, sentence, direction, useSelectionStore.getState().fineRange)
+            : moveSelection(current, sentence.tokens, direction);
           select(next);
           store.setActiveTokenIndex(sentence.id, next.cursor);
         } else {
           const edge = current ? (direction === 1 ? current.end : current.start) : sentence.activeTokenIndex;
           const next = nextWord(sentence.tokens, edge, direction);
           select(null);
-          if (next !== null) store.setActiveTokenIndex(sentence.id, next);
+          if (next !== null) {
+            useSelectionStore.getState().setEntry({ sentenceId: sentence.id, index: next });
+            store.setActiveTokenIndex(sentence.id, next);
+          }
         }
         return;
       }
@@ -126,10 +132,10 @@ export function useKeyboardShortcuts(textareaRef: React.RefObject<HTMLTextAreaEl
       } else {
         if (!base.beforeExpansion) return;
         stayFine(sentence, base);
-        const next = base.automatic
-          ? singleSelection(sentence, base.start, base.mode) : shrinkSelection(base);
+        const next = shrinkSelection(base);
         store.setActiveTokenIndex(sentence.id, next.cursor);
-        select(fiveHeld ? { ...next, automatic: false } : null);
+        select(fiveHeld ? { ...next, mode: 'keyboard', automatic: false }
+          : next.beforeExpansion ? next : null);
       }
     };
     const handleKeyUp = (e: KeyboardEvent) => {
@@ -157,6 +163,7 @@ export function useKeyboardShortcuts(textareaRef: React.RefObject<HTMLTextAreaEl
     };
     const unsubscribe = useDocumentStore.subscribe((state, previous) => {
       if (state.documentId !== previous.documentId || state.currentActiveIndex !== previous.currentActiveIndex) {
+        useSelectionStore.getState().setEntry(null);
         useSelectionStore.getState().setFineRange(null); cancel();
       }
       const current = state.sentences[state.currentActiveIndex];

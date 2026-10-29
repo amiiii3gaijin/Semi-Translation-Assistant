@@ -2,6 +2,9 @@ export interface Token {
   start: number; // UTF-16 offsets into originalText; end is exclusive.
   end: number;
   isWhitespace?: boolean;
+  isMarkup?: boolean;
+  isVerbatim?: boolean;
+  rawPos?: number;
   id: string;        // Unique identifier (sentenceID_tokenIndex)
   text: string;      // Token text
   isPunctuation: boolean; // Whether it is pure punctuation
@@ -19,11 +22,14 @@ export interface TokenGroup {
 }
 
 export interface Sentence {
+  segmentationSource?: 'llm'; // Retain reviewed boundaries across local parser upgrades.
   id: string;             // UUID
   index: number;          // Natural index in the full text
   originalText: string;   // Original Chinese sentence
   tokens: Token[];        // Tokenized array
   groups: TokenGroup[];
+  candidateGroups?: TokenGroup[]; // Nested alternatives, expanded with 9; no extra ribbons.
+  pairedGroups?: TokenGroup[]; // Structural ranges, independent of visible term markers.
   parserVersion: number;
   translatedText: string; // Translation typed by user
   status: 'pending' | 'active' | 'completed'; // Sentence status

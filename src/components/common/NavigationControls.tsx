@@ -94,6 +94,26 @@ export function NavigationControls() {
           </div>
           <div className="help-settings">
             <div>
+              <span className="help-setting-label">长按 5 连选单位</span>
+              <div className="preference-choices" role="group" aria-label="长按 5 连选单位">
+                {(['word', 'group'] as const).map(value => <Button key={value}
+                  variant={usePreferencesStore.getState().captureUnit === value ? 'primary' : 'surface'}
+                  aria-pressed={usePreferencesStore.getState().captureUnit === value}
+                  onClick={() => usePreferencesStore.getState().setCaptureUnit(value)}>{value === 'word' ? '按词' : '按词组'}</Button>)}
+              </div>
+              <p className="ui-caption help-copy">按词组时整组进入、整组退回；按 7 拆开的词组暂时保持细选。</p>
+            </div>
+            <div>
+              <span className="help-setting-label">进度计算方式</span>
+              <div className="preference-choices" role="group" aria-label="进度计算方式">
+                {(['filled', 'position'] as const).map(value => <Button key={value}
+                  variant={usePreferencesStore.getState().progressMode === value ? 'primary' : 'surface'}
+                  aria-pressed={usePreferencesStore.getState().progressMode === value}
+                  onClick={() => usePreferencesStore.getState().setProgressMode(value)}>{value === 'filled' ? '按填写页数' : '按当前位置'}</Button>)}
+              </div>
+              <p className="ui-caption help-copy">按当前位置允许跳过空页，回翻时进度回退；到达最后一页为 100%，不表示翻译完成。</p>
+            </div>
+            <div>
               <label className="preference-toggle">
                 <span>抓取后自动步进</span>
                 <input type="checkbox" role="switch" checked={autoAdvanceAfterCapture}
@@ -140,7 +160,7 @@ export function NavigationControls() {
           <p className="ui-caption help-copy">数字键指小键盘。按住 5，用 4/6 连续选词；9 扩展当前块，7 收回。也可先按 9 预选，再点按 5。</p>
           <p className="ui-caption help-copy">贴近文字的灰色圆头线标出候选词组，蓝色胶囊表示整个选区。隐藏标记后仍可用 9/7 扩缩。鼠标直接拖选，松开插入。</p>
           <p className="ui-caption help-copy">Page Up / Page Down 可长按连续翻页，松开即停。小键盘 + 返回上一句，Enter 完成并进入下一句，长按均只执行一次；主键盘加号正常输入。</p>
-          <p className="ui-caption help-copy">自动整组选词开启时，进入词组即选整组；7 收回到首个细词，离开该组前保持细选，9 可重新扩组。长引文需按 9 确认。</p>
+          <p className="ui-caption help-copy">自动整选后，7 回到进入时的词：从左进入回组首，从右进入回组尾。上下移动或鼠标定位保留落点。9 可逐层扩展，7 逐层收回；离开该组前保持细选。</p>
           <p className="ui-caption help-copy">8/2 按屏幕实际行上下移动，尽量保持横向位置；按住 5 或手动预选时不换行。括号、引号和运算符可用键盘定位；普通停顿标点跳过，但范围抓取仍保留。3 暂无快捷功能。</p>
           <p className="ui-caption help-copy">翻译进度按已有非空译文的卡片占比统计，不代表审核完成；清空译文会扣除进度。当前页显示正在查看的位置。</p>
           </div>

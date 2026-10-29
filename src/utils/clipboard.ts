@@ -1,3 +1,14 @@
+// Start the permission-sensitive write during the user's click, even when
+// preparing the text takes longer than the browser's activation window.
+export function scheduleClipboardCopy(text: Promise<string>): Promise<boolean> | null {
+    if (!window.isSecureContext || !navigator.clipboard?.write || typeof ClipboardItem === 'undefined') return null;
+    const blob = text.then(value => new Blob([value], { type: 'text/plain' }));
+    void blob.catch(() => {});
+    try {
+        return navigator.clipboard.write([new ClipboardItem({ 'text/plain': blob })]).then(() => true, () => false);
+    } catch { return Promise.resolve(false); }
+}
+
 export const copyToClipboard = async (text: string): Promise<boolean> => {
     // 1. Try modern async API
     if (navigator.clipboard && window.isSecureContext) {

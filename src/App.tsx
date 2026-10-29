@@ -1,6 +1,6 @@
 import { lazy, Suspense, useEffect, useState } from 'react';
-import { AnimatePresence, motion } from 'motion/react';
-import { ArrowRight, X } from 'lucide-react';
+import { ImportWorkspace } from './components/import/ImportWorkspace';
+
 import { useDocumentStore } from './store/useDocumentStore';
 import { SentenceStream } from './components/editor/SentenceStream';
 import { TopProgressBar } from './components/layout/TopProgressBar';
@@ -9,16 +9,16 @@ import { NavigationControls } from './components/common/NavigationControls';
 import { Button } from './components/common/Button';
 import { useAutoSave } from './hooks/useAutoSave';
 import { useMilestoneTracker } from './hooks/useMilestone';
-import { UI_MOTION } from './design/motion';
+
 const RibbonDeveloperPanel = lazy(() => import('./components/dev/RibbonDeveloperPanel'));
 
 export default function App() {
   const loadFromIndexedDB = useDocumentStore(state => state.loadFromIndexedDB);
-  const importDocument = useDocumentStore(state => state.importDocument);
+
   const documentId = useDocumentStore(state => state.documentId);
   const isImporting = useDocumentStore(state => state.isImporting);
   const importProgress = useDocumentStore(state => state.importProgress);
-  const [inputText, setInputText] = useState('');
+
   const [isInitializing, setIsInitializing] = useState(true);
   const [showRibbonPanel, setShowRibbonPanel] = useState(false);
   useEffect(() => {
@@ -58,27 +58,7 @@ export default function App() {
     </section>
   </main>;
 
-  if (!documentId) return <main key="import-form" className="import-screen">
-    <section className="import-card" aria-labelledby="app-title">
-      <h1 id="app-title" className="import-title">半翻</h1>
-      <div className="import-field">
-        <textarea className="import-textarea custom-scrollbar" aria-label="待翻译原文"
-          placeholder="在此粘贴或输入原文内容…" value={inputText} onChange={event => setInputText(event.target.value)} />
-        <AnimatePresence>
-          {inputText && <motion.div className="import-clear" initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} transition={UI_MOTION.control}>
-            <Button variant="quiet" shape="round" aria-label="清空原文" title="清空原文" onClick={() => setInputText('')}>
-              <X className="ui-icon" aria-hidden="true" />
-            </Button>
-          </motion.div>}
-        </AnimatePresence>
-      </div>
-      <Button variant="primary" shape="rounded" className="import-submit" disabled={!inputText.trim()}
-        onClick={() => importDocument(inputText)}>
-        进入工作区 <ArrowRight className="ui-icon" aria-hidden="true" />
-      </Button>
-    </section>
-  </main>;
+  if (!documentId) return <ImportWorkspace />;
 
   return <main key="workbench" className="workbench" aria-label="半翻工作区">
     <TopProgressBar /><SentenceStream /><NavigationControls /><ToastNotification />

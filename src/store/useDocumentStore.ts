@@ -2,8 +2,9 @@ import { create } from 'zustand';
 import localforage from 'localforage';
 import { DocumentState, Sentence } from '../types';
 import { splitTextIntoSentences } from '../utils/textSplitter';
-import { PARSER_VERSION, tokenize } from '../utils/tokenizer';
-import { buildTokenGroups } from '../utils/tokenGroups';
+import { PARSER_VERSION } from '../utils/tokenizer';
+import { parseSentence } from '../utils/parseSentence';
+import { createParserContext } from '../utils/documentTerms';
 import { v4 as uuidv4 } from 'uuid';
 import { isNavigableToken } from '../utils/tokenNavigation';
 
@@ -15,6 +16,7 @@ export interface DocumentStore extends DocumentState {
   setOriginalFontSize: (size: number) => void;
   setTranslationFontSize: (size: number) => void;
   importDocument: (rawText: string) => Promise<void>;
+  importAssistedDocument: (rawText: string, sentences: Sentence[]) => Promise<void>;
   updateTranslation: (sentenceId: string, text: string) => void;
   nextSentence: () => void;
   prevSentence: () => void;
@@ -46,6 +48,15 @@ export const useDocumentStore = create<DocumentStore>((set, get) => ({
   setOriginalFontSize: (size: number) => set({ originalFontSize: Math.max(12, Math.min(60, size)) }),
   setTranslationFontSize: (size: number) => set({ translationFontSize: Math.max(12, Math.min(60, size)) }),
 
+  importAssistedDocument: async (rawText, sentences) => {
+    if (!sentences.length || sentences.map(s => s.originalText).join('') !== rawText || sentences.some(s => s.tokens.map(t => t.text).join('') !== s.originalText))
+      throw new Error('原文完整性校验失败，未导入。');
+    const state = { ...initialState, documentId: uuidv4(), rawText, sentences, totalSentences: sentences.length, lastSavedAt: Date.now(), isImporting: false, importProgress: 100,
+      originalFontSize: get().originalFontSize, translationFontSize: get().translationFontSize };
+    await localforage.setItem('half-translation-state', state);
+    set(state);
+  },
+
   importDocument: async (rawText: string) => {
     const documentId = uuidv4();
     set({ isImporting: true, importProgress: 0 });
@@ -54,6 +65,9 @@ export const useDocumentStore = create<DocumentStore>((set, get) => ({
 
     try {
         const rawSentences = splitTextIntoSentences(rawText);
+        const parserContext = createParserContext(rawText);
+        let sourceOffset = 0;
+        const offsets = rawSentences.map(text => { const at = sourceOffset; sourceOffset += text.length; return at; });
         
         const sentences: Sentence[] = rawSentences.map((text, index) => {
           return {
@@ -92,13 +106,13 @@ export const useDocumentStore = create<DocumentStore>((set, get) => ({
                 const newSentences = [...state.sentences];
                 for (let j = i; j < i + CHUNK_SIZE && j < newSentences.length; j++) {
                     const s = newSentences[j];
-                    const rawTokens = tokenize(s.originalText, s.id);
+                    const { tokens: rawTokens, groups, pairedGroups } = parseSentence(s.originalText, s.id, undefined, undefined, parserContext, offsets[j]);
                     const firstValidTokenIndex = Math.max(0, rawTokens.findIndex(isNavigableToken));
                     
                     newSentences[j] = {
                         ...s,
                         tokens: rawTokens,
-                        groups: buildTokenGroups(s.originalText, rawTokens),
+                        groups, pairedGroups,
                         activeTokenIndex: firstValidTokenIndex,
                     };
                 }
@@ -193,21 +207,25 @@ export const useDocumentStore = create<DocumentStore>((set, get) => ({
     try {
       const storedState = await localforage.getItem<DocumentState>('half-translation-state');
       if (storedState && storedState.documentId) {
-        const needsMigration = storedState.sentences.some(s => s.parserVersion !== PARSER_VERSION || !s.groups || !s.tokens.length);
+        const needsMigration = storedState.sentences.some(s => s.segmentationSource !== 'llm' && (s.parserVersion !== PARSER_VERSION || !s.groups || !s.tokens.length));
         if (needsMigration) {
           // Keep the old document intact before rebuilding source-only metadata.
           const backupKey = `half-translation-before-parser-v${PARSER_VERSION}-${storedState.documentId}`;
           if (!(await localforage.getItem(backupKey))) await localforage.setItem(backupKey, storedState);
         }
         const restored = [] as Sentence[];
+        const parserContext = createParserContext(storedState.sentences.map(s => s.originalText).join(''));
+        let sourceOffset = 0;
         for (let i = 0; i < storedState.sentences.length; i++) {
           const s = storedState.sentences[i];
-          if (s.parserVersion === PARSER_VERSION && s.groups && s.tokens.length) { restored.push(s); continue; }
+          const atSource = sourceOffset;
+          sourceOffset += s.originalText.length;
+          if ((s.segmentationSource === 'llm' || s.parserVersion === PARSER_VERSION) && s.groups && s.tokens.length) { restored.push(s); continue; }
           const oldToken = s.tokens[s.activeTokenIndex];
           const oldOffset = oldToken?.start ?? s.tokens.slice(0, s.activeTokenIndex).reduce((n, t) => n + t.text.length, 0);
-          const tokens = tokenize(s.originalText, s.id);
+          const { tokens, groups, pairedGroups } = parseSentence(s.originalText, s.id, undefined, undefined, parserContext, atSource);
           const at = tokens.findIndex(t => isNavigableToken(t) && t.end > oldOffset);
-          restored.push({ ...s, tokens, groups: buildTokenGroups(s.originalText, tokens),
+          restored.push({ ...s, tokens, groups, pairedGroups,
             parserVersion: PARSER_VERSION, activeTokenIndex: Math.max(0, at) });
           if (i % 15 === 14) await new Promise(resolve => setTimeout(resolve, 0));
         }
@@ -223,7 +241,7 @@ export const useDocumentStore = create<DocumentStore>((set, get) => ({
 
   saveToIndexedDB: async () => {
     try {
-      const { importDocument, updateTranslation, nextSentence, prevSentence, insertTokenToTranslation, loadFromIndexedDB, saveToIndexedDB, setActiveTokenIndex, markCurrentSentenceCompleted, clearDocument, setOriginalFontSize, setTranslationFontSize, ...stateToSave } = get();
+      const { importAssistedDocument, importDocument, updateTranslation, nextSentence, prevSentence, insertTokenToTranslation, loadFromIndexedDB, saveToIndexedDB, setActiveTokenIndex, markCurrentSentenceCompleted, clearDocument, setOriginalFontSize, setTranslationFontSize, ...stateToSave } = get();
       
       const stateWithTime = { ...stateToSave, lastSavedAt: Date.now() };
       stateWithTime.completedSentences = stateWithTime.sentences.filter(s => s.translatedText.trim() !== '').length;

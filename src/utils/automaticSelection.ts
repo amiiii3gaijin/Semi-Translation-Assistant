@@ -10,9 +10,12 @@ export function automaticSelection(sentence: Sentence): SourceSelection | null {
   if (fine?.sentenceId === sentence.id && index >= fine.start && index <= fine.end) return null;
   const group = sentence.groups.find(g => g.autoSelect !== false && g.startIndex <= index && g.endIndex >= index);
   if (!group) return null;
-  const first = singleSelection(sentence, group.startIndex, 'preview');
+  const entry = useSelectionStore.getState().entry;
+  const landing = entry?.sentenceId === sentence.id && entry.index >= group.startIndex && entry.index <= group.endIndex
+    ? entry.index : index;
+  const first = singleSelection(sentence, landing, 'preview');
   return { ...first, start: group.startIndex, end: group.endIndex, cursor: index,
-    blockEnd: group.endIndex, automatic: true, beforeExpansion: first };
+    blockStart: group.startIndex, blockEnd: group.endIndex, automatic: true, beforeExpansion: first };
 }
 
 export function effectiveSelection(sentence: Sentence): SourceSelection | null {
