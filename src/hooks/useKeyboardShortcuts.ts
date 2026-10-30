@@ -1,3 +1,4 @@
+import { commandCode, ALT_PAD } from '../utils/keyboardCommands';
 import React, { useEffect } from 'react';
 import { useDocumentStore } from '../store/useDocumentStore';
 import { useSelectionStore } from '../store/useSelectionStore';
@@ -12,6 +13,11 @@ import { usePreferencesStore } from '../store/usePreferencesStore';
 export function useKeyboardShortcuts(textareaRef: React.RefObject<HTMLTextAreaElement | null>) {
   useEffect(() => {
     let fiveHeld = false;
+    let rightAlt = false;
+    let captureKey: string | null = null;
+    let pageTimer: ReturnType<typeof setInterval> | undefined;
+    let pageDelay: ReturnType<typeof setTimeout> | undefined;
+    const stopPaging = () => { clearInterval(pageTimer); clearTimeout(pageDelay); pageTimer = undefined; pageDelay = undefined; };
     let cancelled = false;
     let lastPageStep = 0;
     let target: TranslationTarget | undefined;
@@ -23,29 +29,37 @@ export function useKeyboardShortcuts(textareaRef: React.RefObject<HTMLTextAreaEl
       target = undefined;
       select(null);
     };
-    const allowed = (event: KeyboardEvent) => {
+    const allowed = (event: Pick<KeyboardEvent, 'target'>) => {
       if (document.querySelector('[role="dialog"][aria-modal="true"]')) return false;
       const element = event.target as HTMLElement | null;
       if (element === textareaRef.current) return true;
       return !element?.closest('input, textarea, select, [contenteditable="true"], .help-panel');
     };
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.code === 'F9' && e.ctrlKey && e.altKey && e.shiftKey && !e.metaKey) return;
+      const code = commandCode(e.code, rightAlt);
+      if (code === 'F9' && e.ctrlKey && e.altKey && e.shiftKey && !e.metaKey) return;
       if ((e.target as HTMLElement | null)?.closest('[data-ribbon-dev]')) return;
-      if (e.isComposing || e.ctrlKey || e.metaKey || e.altKey || e.shiftKey || !allowed(e)) {
+      if (!allowed(e)) { rightAlt = false; stopPaging(); cancel(); return; }
+      if (e.code === 'AltRight' && !e.isComposing && allowed(e)) {
+        rightAlt = true; e.preventDefault(); e.stopPropagation(); return;
+      }
+      const layerCommand = rightAlt && !!ALT_PAD[e.code];
+      if (layerCommand && e.code !== 'ControlRight' && e.code !== 'ShiftRight') stopPaging();
+      if (e.isComposing || e.metaKey || (!layerCommand && (e.ctrlKey || e.altKey || e.shiftKey)) || !allowed(e)) {
+        if (e.isComposing) rightAlt = false; stopPaging();
         cancel();
         return;
       }
       const store = useDocumentStore.getState();
       const sentence = store.sentences[store.currentActiveIndex];
       if (!sentence || !sentence.tokens.length) return;
-      if (e.code === 'Numpad8' || e.code === 'Numpad2') {
+      if (code === 'Numpad8' || code === 'Numpad2') {
         e.preventDefault();
         e.stopPropagation();
         // Standalone only: do not change held, mouse or preview selections.
         const activeSelection = useSelectionStore.getState().selection;
         if (fiveHeld || (activeSelection && !activeSelection.automatic)) return;
-        const next = vertical.move(sentence, e.code === 'Numpad8' ? -1 : 1);
+        const next = vertical.move(sentence, code === 'Numpad8' ? -1 : 1);
         if (next !== null) {
           select(null);
           useSelectionStore.getState().setEntry({ sentenceId: sentence.id, index: next });
@@ -54,11 +68,25 @@ export function useKeyboardShortcuts(textareaRef: React.RefObject<HTMLTextAreaEl
         return;
       }
       vertical.reset();
-      if (['PageUp', 'PageDown', 'NumpadAdd', 'NumpadEnter'].includes(e.code)) {
+      if (rightAlt && (e.code === 'ControlRight' || e.code === 'ShiftRight')) {
+        e.preventDefault(); e.stopPropagation();
+        if (e.repeat || pageTimer || pageDelay) return;
+        cancel();
+        const step = () => {
+          if (!rightAlt || !allowed({target: document.activeElement})) { stopPaging(); return; }
+          if (code === 'PageUp') useDocumentStore.getState().prevSentence();
+          else useDocumentStore.getState().nextSentence();
+          requestAnimationFrame(() => textareaRef.current?.focus({ preventScroll: true }));
+        };
+        step();
+        pageDelay = setTimeout(() => { pageDelay = undefined; if (!rightAlt || !allowed({target: document.activeElement})) return; step(); pageTimer = setInterval(step, 130); }, 350);
+        return;
+      }
+      if (['PageUp', 'PageDown', 'NumpadAdd', 'NumpadEnter'].includes(code)) {
         e.preventDefault();
         e.stopPropagation();
         cancel();
-        const pageKey = e.code === 'PageUp' || e.code === 'PageDown';
+        const pageKey = code === 'PageUp' || code === 'PageDown';
         if (e.repeat && !pageKey) return;
         // Use native key repeat: releasing the key stops immediately, with no
         // timer or queued page changes. Bound the rate on fast-repeat keyboards.
@@ -67,32 +95,42 @@ export function useKeyboardShortcuts(textareaRef: React.RefObject<HTMLTextAreaEl
           if (e.repeat && now - lastPageStep < 100) return;
           lastPageStep = now;
         }
-        if (e.code === 'PageUp' || e.code === 'NumpadAdd') store.prevSentence();
+        if (code === 'PageUp' || code === 'NumpadAdd') store.prevSentence();
         else {
-          if (e.code === 'NumpadEnter') store.markCurrentSentenceCompleted();
+          if (code === 'NumpadEnter') store.markCurrentSentenceCompleted();
           store.nextSentence();
         }
         requestAnimationFrame(() => textareaRef.current?.focus({ preventScroll: true }));
         return;
       }
-      const handled = ['Numpad1', 'Numpad4', 'Numpad5', 'Numpad6', 'Numpad7', 'Numpad9'];
-      if (!handled.includes(e.code)) {
-        if (fiveHeld || e.code === 'Escape') cancel();
+      const handled = ['Numpad1', 'Numpad3', 'Numpad4', 'Numpad5', 'Numpad6', 'Numpad7', 'Numpad9'];
+      if (!handled.includes(code)) {
+        if (fiveHeld || code === 'Escape') cancel();
         return;
       }
       e.preventDefault();
       e.stopPropagation();
-      if (e.repeat && e.code !== 'Numpad4' && e.code !== 'Numpad6') return;
-      if (e.code === 'Numpad1') {
+      if (e.repeat && code !== 'Numpad4' && code !== 'Numpad6') return;
+      if (code === 'Numpad3') {
+        cancel();
+        const last = nextWord(sentence.tokens, sentence.tokens.length, -1);
+        if (last !== null) {
+          useSelectionStore.getState().setEntry({ sentenceId: sentence.id, index: last });
+          useSelectionStore.getState().setFineRange({ sentenceId: sentence.id, start: last, end: last });
+          store.setActiveTokenIndex(sentence.id, last);
+        }
+        return;
+      }
+      if (code === 'Numpad1') {
         const current = effectiveSelection(sentence);
         if (current) stayFine(sentence, current);
         cancel(); return;
       }
-      if (e.code === 'Numpad5') {
+      if (code === 'Numpad5') {
         if (fiveHeld || e.repeat) return;
         const textarea = textareaRef.current;
         if (!textarea || textarea.dataset.sentenceId !== sentence.id) return;
-        fiveHeld = true;
+        fiveHeld = true; captureKey = e.code;
         cancelled = false;
         target = { start: textarea.selectionStart, end: textarea.selectionEnd, value: textarea.value };
         const preview = effectiveSelection(sentence);
@@ -105,8 +143,8 @@ export function useKeyboardShortcuts(textareaRef: React.RefObject<HTMLTextAreaEl
       }
       if (fiveHeld && cancelled) return;
       const current = effectiveSelection(sentence);
-      if (e.code === 'Numpad4' || e.code === 'Numpad6') {
-        const direction = e.code === 'Numpad4' ? -1 : 1;
+      if (code === 'Numpad4' || code === 'Numpad6') {
+        const direction = code === 'Numpad4' ? -1 : 1;
         if (fiveHeld && current?.mode === 'keyboard') {
           const next = usePreferencesStore.getState().captureUnit === 'group'
             ? moveGroupedSelection(current, sentence, direction, useSelectionStore.getState().fineRange)
@@ -126,7 +164,7 @@ export function useKeyboardShortcuts(textareaRef: React.RefObject<HTMLTextAreaEl
       }
       const base = current ?? singleSelection(sentence, sentence.activeTokenIndex, 'preview');
       if (base.mode === 'mouse') return;
-      if (e.code === 'Numpad9') {
+      if (code === 'Numpad7') {
         useSelectionStore.getState().setFineRange(null);
         select(expandSelection(base, sentence));
       } else {
@@ -139,12 +177,22 @@ export function useKeyboardShortcuts(textareaRef: React.RefObject<HTMLTextAreaEl
       }
     };
     const handleKeyUp = (e: KeyboardEvent) => {
-      if (e.code !== 'Numpad5' || !fiveHeld) return;
+      if (e.code === 'ControlRight' || e.code === 'ShiftRight') stopPaging();
+      if (e.code === 'AltRight') {
+        const wasLayer = rightAlt; rightAlt = false; stopPaging();
+        if (wasLayer) {
+          e.preventDefault();
+          if (fiveHeld) cancel();
+          fiveHeld = false; captureKey = null;
+        }
+        return;
+      }
+      if (e.code !== captureKey || !fiveHeld) return;
       e.preventDefault();
       const selection = useSelectionStore.getState().selection;
       const store = useDocumentStore.getState();
       const sentence = store.sentences[store.currentActiveIndex];
-      const canCommit = !cancelled && !e.ctrlKey && !e.altKey && !e.metaKey && !e.shiftKey
+      const canCommit = !cancelled && !e.isComposing && !e.metaKey && (rightAlt && captureKey === 'KeyS' || !e.ctrlKey && !e.altKey && !e.shiftKey)
         && allowed(e) && selection?.mode === 'keyboard' && sentence?.id === selection.sentenceId;
       fiveHeld = false;
       if (canCommit && selection && sentence) {
@@ -155,13 +203,14 @@ export function useKeyboardShortcuts(textareaRef: React.RefObject<HTMLTextAreaEl
       cancelled = false;
       select(null);
     };
-    const onBlur = () => { cancel(); fiveHeld = false; };
+    const onBlur = () => { rightAlt = false; stopPaging(); cancel(); fiveHeld = false; captureKey = null; };
     const onVisibility = () => { if (document.hidden) onBlur(); };
     const onPointerDown = (event: PointerEvent) => {
       if ((event.target as HTMLElement | null)?.closest('[data-ribbon-dev]') && !fiveHeld) return;
-      cancel();
+      stopPaging(); cancel();
     };
     const unsubscribe = useDocumentStore.subscribe((state, previous) => {
+      if (state.documentId !== previous.documentId) { rightAlt = false; stopPaging(); }
       if (state.documentId !== previous.documentId || state.currentActiveIndex !== previous.currentActiveIndex) {
         useSelectionStore.getState().setEntry(null);
         useSelectionStore.getState().setFineRange(null); cancel();
@@ -181,8 +230,10 @@ export function useKeyboardShortcuts(textareaRef: React.RefObject<HTMLTextAreaEl
     window.addEventListener('keyup', handleKeyUp, true);
     window.addEventListener('blur', onBlur);
     window.addEventListener('pointerdown', onPointerDown, true);
+    window.addEventListener('compositionstart', onBlur, true);
     document.addEventListener('visibilitychange', onVisibility);
     return () => {
+      stopPaging();
       unsubscribe();
       unsubscribePreferences();
       select(null);
@@ -191,6 +242,7 @@ export function useKeyboardShortcuts(textareaRef: React.RefObject<HTMLTextAreaEl
       window.removeEventListener('keyup', handleKeyUp, true);
       window.removeEventListener('blur', onBlur);
       window.removeEventListener('pointerdown', onPointerDown, true);
+      window.removeEventListener('compositionstart', onBlur, true);
       document.removeEventListener('visibilitychange', onVisibility);
     };
   }, [textareaRef]);

@@ -61,7 +61,7 @@ const coverage = (highlight: boolean) => {
   return cells;
 };
 assert.deepEqual(coverage(true), coverage(false), 'term coloring cannot add lines or alter solid/dashed coverage');
-assert.deepEqual(phraseMarkers({ ...first, groups: [], candidateGroups: [] }, true, true), [], 'term-only annotations cannot manufacture lines');
+assert.deepEqual(phraseMarkers({ ...first, groups: [], candidateGroups: [], excludedGroupRanges: [{start:0,end:first.originalText.length}] }, true, true), [], 'term-only annotations cannot manufacture lines');
 const old = await buildAssistedSentences(prep, { ...reply, version: 2, consistency: undefined });
 assert.ok(old.every(s => !s.consistencyTerms?.length));
 assert.throws(() => validateReply(JSON.stringify({ ...reply, document: 'wrong' }), prep));

@@ -6,6 +6,7 @@ import { usePreferencesStore } from '../../store/usePreferencesStore';
 import { phraseRibbonPath, ribbonMetrics, RibbonSurface } from '../../utils/phraseRibbon';
 import { getRibbonParameters, ribbonColor, ribbonReadings, RibbonReading, useRibbonParameters } from '../../design/ribbonParameters';
 import { phraseMarkers } from '../../utils/phraseMarkers';
+import { connectMarkers } from '../../utils/markerConnections';
 import { fittedDashes } from '../../utils/markerPolicy';
 import { type SourceSelection } from '../../utils/sourceSelection';
 
@@ -188,27 +189,11 @@ export function SelectionSurface({ container, sentence, selected, selection, isA
               height: ribbon.thickness });
           }
           return [...rows.values()].map(rect => ({ ...rect, id: `${group.id}-${rect.row}`, dashed: group.dashed, consistent: group.consistent,
-            connection: group.connection, start: group.startIndex, end: group.endIndex }));
+            connection: group.connection,
+            start: Math.min(...all.filter(t => t.rect.row === rect.row && t.index >= group.startIndex && t.index <= group.endIndex).map(t => t.index)),
+            end: Math.max(...all.filter(t => t.rect.row === rect.row && t.index >= group.startIndex && t.index <= group.endIndex).map(t => t.index)) }));
         }).sort((a, b) => a.row - b.row || a.x - b.x);
-      for (let i = 1; i < markers.length; i++) {
-        const left = markers[i - 1], right = markers[i];
-        if (left.row !== right.row) continue;
-        const edge = left.x + left.width;
-        if (left.connection === right.connection && left.end + 1 === right.start) {
-          // A shared candidate is a joined line; unrelated neighbors retain a visible break.
-          const middle = (edge + right.x) / 2;
-          left.width = middle - left.x;
-          right.width += right.x - middle;
-          right.x = middle;
-        } else {
-          const missingGap = Math.max(0, fontSize * 0.32 - (right.x - edge));
-          const inset = Math.min(missingGap / 2, left.width / 4, right.width / 4);
-          left.width -= inset;
-          right.x += inset;
-          right.width -= inset;
-        }
-      }
-      setGeometry({ fontSize, selected: rangeRects(selected), markers });
+      setGeometry({ fontSize, selected: rangeRects(selected), markers: connectMarkers(markers, fontSize) });
       syncTextColor();
       cancelAnimationFrame(frame);
       frame = requestAnimationFrame(syncTextColor);

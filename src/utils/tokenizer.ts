@@ -7,7 +7,7 @@ import { markdownMarkers } from './textStructure';
 // Vite resolves ESM; Node resolves the package's CommonJS entry.
 const { Segment, useDefault } = (Reflect.get(Segmentit, 'default') ?? Segmentit) as typeof Segmentit;
 
-export const PARSER_VERSION = 6;
+export const PARSER_VERSION = 7;
 let segmentitInstance: ReturnType<typeof useDefault> | null = null;
 const getSegmentit = () => segmentitInstance ?? (segmentitInstance = useDefault(new Segment()));
 
@@ -23,7 +23,7 @@ function partOfSpeech(p?: number): string {
 export interface TokenTrace { start: number; end: number; origin: 'segmentit' | 'lexicon' | 'source-gap' | 'protected-run' | 'document-term' | 'boundary-repair' }
 
 // Basic word boundaries, separate from semantic phrase suggestions.
-const WORD_BOUNDARIES = ['量身定制', '标志物', '语言', '文化', '报告', '水平', '成长', '学生', '心理学', '信托', '托付', '全部', '互操作', '长视频', '断订', '防控'];
+const WORD_BOUNDARIES = ['量身定制', '标志物', '语言', '文化', '报告', '水平', '成长', '学生', '心理学', '信托', '托付', '全部', '互操作', '长视频', '断订', '防控', '已有', '带毒'];
 
 export function tokenize(sentence: string, sentenceId: string, observe?: (trace: TokenTrace) => void, context?: ParserContext): Token[] {
   const tokens: Token[] = [];
@@ -61,6 +61,12 @@ export function tokenize(sentence: string, sentenceId: string, observe?: (trace:
     let cursor = 0;
     let plainStart = 0;
     while (cursor < text.length) {
+      const quantity = /^(?:几|数|[一二三四五六七八九十两]+)(?:周|天|年|个月)/u.exec(text.slice(cursor));
+      if (quantity && !/^[级龄]/u.test(text.slice(cursor + quantity[0].length))) {
+        if (cursor > plainStart) segmentHan(text.slice(plainStart, cursor), offset + plainStart);
+        append(offset + cursor, offset + cursor + quantity[0].length, 'unk', false, 'boundary-repair');
+        cursor += quantity[0].length; plainStart = cursor; continue;
+      }
       if (cursor === 0 && /\d/u.test(sentence[offset - 1] ?? '') && /^[年月周天]的/u.test(text)) {
         append(offset, offset + 1, 'unk', false, 'boundary-repair'); cursor = 1; plainStart = 1; continue;
       }

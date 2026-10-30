@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useDocumentStore } from '../store/useDocumentStore';
 import { CASES, type LabCase } from './cases';
 import { analyzeCase, compare, LAB_LIMIT, makeBaseline, makeReport, readBaseline, validateCases, type Baseline, type CaseResult } from './engine';
 import './lab.css';
@@ -28,7 +29,7 @@ export default function TokenizerLab() {
     try { return readBaseline(localStorage.getItem(BASELINE_KEY)); } catch { return null; }
   });
   const [busy, setBusy] = useState(false);
-  const [message, setMessage] = useState('尚未分析。实验台不读取或修改工作区译文。');
+  const [message, setMessage] = useState('尚未分析。实验台不会修改工作区译文。');
   const [showWhitespace, setShowWhitespace] = useState(true);
   const [annotations, setAnnotations] = useState('');
 
@@ -83,7 +84,8 @@ export default function TokenizerLab() {
   }
 
   return <main className="tokenizer-lab custom-scrollbar">
-    <header className="lab-header"><div><h1>分词实验台</h1><p>细词、词组与规则诊断 · 与半翻共用解析核心</p></div>
+    <header className="lab-header"><div><h1>分词实验台</h1><p>细词、词组与规则诊断 · 与半翻共用解析核心</p>
+      <button onClick={() => download('llm-group-decisions.json', useDocumentStore.getState().sentences.map(s => ({ originalText: s.originalText, decisions: s.groupDecisions ?? [], groups: s.groups, candidates: s.candidateGroups ?? [] })))}>导出当前工作区词组来源与处理记录</button></div>
       <a href={window.location.pathname}>返回半翻</a></header>
     <section className="lab-panel">
       <div className="lab-toolbar"><label>样例 <select disabled={busy} value={sample.id} onChange={e => choose(e.target.value)}>

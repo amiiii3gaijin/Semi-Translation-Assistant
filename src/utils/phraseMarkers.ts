@@ -1,12 +1,13 @@
 import type { Sentence, TokenGroup } from '../types';
 import { usefulCandidate } from './markerPolicy';
+import { selectionCandidates } from './selectionCandidates';
 
 export interface PhraseMarker extends TokenGroup { dashed: boolean; consistent: boolean; connection?: string }
 
 /** Static, single-layer annotations. Cursor/selection state is deliberately not an input. */
 export function phraseMarkers(sentence: Sentence, automatic: boolean, highlight: boolean): PhraseMarker[] {
   const defaults = sentence.groups.filter(g => g.autoSelect !== false);
-  const candidates = [...sentence.groups.filter(g => g.autoSelect === false), ...(sentence.candidateGroups ?? [])]
+  const candidates = [...sentence.groups.filter(g => g.autoSelect === false), ...selectionCandidates(sentence)]
     .filter(g => usefulCandidate(sentence, g))
     .filter((g, index, all) => all.findIndex(other => other.startIndex === g.startIndex && other.endIndex === g.endIndex) === index)
     // Advertise the nearest candidate layer; deeper ranges remain keyboard-accessible.

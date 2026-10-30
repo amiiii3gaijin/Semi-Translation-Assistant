@@ -25,13 +25,14 @@ export async function prepareImport(source: string, requirements: string): Promi
   const seen = new Set<string>();
   const context = createParserContext(source);
   let sourceOffset = 0;
+  const hintPool: NonNullable<Preparation['boundaryHints']> = [];
   let hintCharacters = 0;
   for (const row of rows) {
     if (boundaryHints.length >= 8) break;
     const parsed = parseSentence(row.text, row.id, undefined, undefined, context, sourceOffset);
     sourceOffset += row.text.length;
     const tokens = parsed.tokens;
-    for (let start = 0; start < tokens.length && boundaryHints.length < 8; start++) {
+    for (let start = 0; start < tokens.length; start++) {
       let end = start;
       while (end < tokens.length && /^[\p{Script=Han}]$/u.test(tokens[end].text) && !tokens[end].isVerbatim && !tokens[end].isMarkup) end++;
       if (end - start < 3) continue;
@@ -39,13 +40,26 @@ export async function prepareImport(source: string, requirements: string): Promi
       const snippet = tokens.slice(from, to);
       const text = row.text.slice(snippet[0].start, snippet.at(-1)!.end);
       const parts = snippet.map(t => t.text);
-      const signature = JSON.stringify(parts);
+      const signature = JSON.stringify(tokens.slice(start, end).map(t => t.text));
       const hint = { id: row.id, text, parts };
       const cost = JSON.stringify(hint).length;
-      if (text.length <= 90 && hintCharacters + cost <= 1200 && !seen.has(signature)) { boundaryHints.push(hint); seen.add(signature); hintCharacters += cost; }
+      if (text.length <= 90 && !seen.has(signature)) { hintPool.push(hint); seen.add(signature); }
       start = end - 1;
     }
     if (Number(row.id.slice(1)) % 15 === 0) await new Promise(r => setTimeout(r, 0));
+  }
+  // Cover the whole document instead of letting the first paragraphs consume all eight slots.
+  const buckets = Array.from({ length: 8 }, () => [] as typeof hintPool);
+  for (const hint of hintPool) buckets[Math.min(7, Math.floor((Number(hint.id.slice(1)) - 1) * 8 / Math.max(1, rows.length)))].push(hint);
+  const suspicion = (hint: typeof hintPool[number]) => hint.parts.filter(p => /^[\p{Script=Han}]$/u.test(p)).length;
+  for (const bucket of buckets) bucket.sort((a,b) => suspicion(b)-suspicion(a));
+  while (boundaryHints.length < 8 && buckets.some(b => b.length)) {
+    for (const bucket of buckets) {
+      const hint = bucket.shift();
+      if (!hint || boundaryHints.length >= 8) continue;
+      const cost = JSON.stringify(hint).length;
+      if (hintCharacters + cost <= 1200) { boundaryHints.push(hint); hintCharacters += cost; }
+    }
   }
   return { version: 2, key, source, requirements, rows, frequent, boundaryHints };
 }
@@ -61,6 +75,7 @@ export function makePrompt(prep: Preparation): string {
 - 不返回“点一下就能”这种缺少后续动作的悬空片段。不为完整英文句子逐项标注；中文内的英文专名或中英混合概念仍需考虑。
 - 保留组内细词，只修明显坏边界。引用、公式、单位和原始空格由程序保护，不必逐个登记。简单单词无需重复列出。
 - 高频参考可能有噪声；阅读全文，检查是否漏了短动作、状态、修饰部分。不凑数量，不枚举整句，不解释理由。
+默认范围应能直接嵌入用户自己组织的英文。若内部常需插入英文连接或调整语序，保留紧凑动作或描述，把整条关系降为候选。例如“分阶段适应宿主”优先考虑“适应宿主”和独立的“分阶段”；“带毒却不发病”保留“带毒”“不发病”，整条转折只作候选。“用抽象概率表达的风险”应考虑描述“用抽象概率表达的”的独立用途。不要机械删除所有“的”或否定词。
 减少冗余不等于减少有用候选：检查是否漏了完整短动作、时间条件或修饰表达。不要用整句候选替代这些短范围。“学科名称＋说明”这样的普通主谓组合不宜成组。
 只返回一个标记为 json 的代码块，代码块外不写任何内容，全部字段放在同一个代码块中：
 {"version":3,"document":"${prep.key}","complete":true,"terms":[],"suggestions":[],"consistency":[],"exceptions":[]}
@@ -159,28 +174,32 @@ function applyRow(source: string, id: string, base: ReturnType<typeof parseSente
   const repairedRanges = result.splits.map(p => locate(source, p));
   const cutsRepair = (a: number, b: number) => repairedRanges.some(([start, end]) =>
     (a > start && a < end && !repaired.some(t => t.start === a)) || (b > start && b < end && !repaired.some(t => t.end === b)));
-  type Span = { a: number; b: number; kind: TokenGroup['kind']; autoSelect: boolean };
+  type Span = { a: number; b: number; kind: TokenGroup['kind']; autoSelect: boolean; source: NonNullable<TokenGroup['source']> };
+  const groupDecisions: NonNullable<Sentence['groupDecisions']> = [];
   const spans: Span[] = [];
   const candidates: Span[] = [];
   const excluded = result.exclude.map(p => locate(source, p));
-  const add = (a: number, b: number, kind: TokenGroup['kind'], autoSelect: boolean) => {
-    if (cutsRepair(a, b) || excluded.some(([x, y]) => x === a && y === b)) return;
+  const add = (a: number, b: number, kind: TokenGroup['kind'], autoSelect: boolean, origin: NonNullable<TokenGroup['source']> = 'local') => {
+    const before = spans.length, alternatives = candidates.length;
+    const note = (outcome: string) => groupDecisions.push({ text: source.slice(a,b), source: origin, outcome });
+    if (cutsRepair(a, b) || excluded.some(([x, y]) => x === a && y === b)) { note('protected-or-excluded'); return; }
     // A complete fine word needs no group and must not reserve its span.
-    if (parsed.tokens.some(t => t.start <= a && t.end >= b)) return;
+    if (parsed.tokens.some(t => t.start <= a && t.end >= b)) { note('already-atomic'); return; }
     const overlaps = spans.filter(s => s.a < b && s.b > a);
     // Optional ranges must grow existing defaults, never cut or sit inside one.
-    if (!autoSelect && overlaps.some(s => !(a <= s.a && b >= s.b))) return;
-    if (!overlaps.length) spans.push({ a, b, kind, autoSelect });
+    if (!autoSelect && overlaps.some(s => !(a <= s.a && b >= s.b))) { note('conflicts-with-default'); return; }
+    if (!overlaps.length) spans.push({ a, b, kind, autoSelect, source: origin });
     else if (!overlaps.some(s => s.a === a && s.b === b)
       && overlaps.every(s => (a <= s.a && b >= s.b) || (s.a <= a && s.b >= b))
-      && !candidates.some(s => s.a === a && s.b === b)) candidates.push({ a, b, kind, autoSelect: false });
+      && !candidates.some(s => s.a === a && s.b === b)) candidates.push({ a, b, kind, autoSelect: false, source: origin });
+    note(spans.length > before ? (autoSelect ? 'default' : 'candidate') : candidates.length > alternatives ? 'nested-candidate' : 'duplicate-or-crossing');
   };
   // Default groups remain disjoint; nested alternatives survive separately.
   const local = parsed.groups.filter(g => g.autoSelect !== false);
   const structural = (g: TokenGroup) => ['citation', 'expression', 'quoted', 'bracket'].includes(g.kind);
   const addLocal = (g: TokenGroup) => add(parsed.tokens[g.startIndex].start, parsed.tokens[g.endIndex].end, g.kind, g.autoSelect !== false);
   local.filter(structural).forEach(addLocal);
-  for (const p of result.groups) { const [a, b] = locate(source, p); add(a, b, 'phrase', p.autoSelect !== false); }
+  for (const p of result.groups) { const [a, b] = locate(source, p); add(a, b, 'phrase', p.autoSelect !== false, 'llm-local'); }
   const addTerms = (items: string[], autoSelect: boolean) => {
     for (const text of [...items].sort((a, b) => a.length - b.length || a.localeCompare(b))) {
       let at = source.indexOf(text);
@@ -189,7 +208,7 @@ function applyRow(source: string, id: string, base: ReturnType<typeof parseSente
         const protectedCut = parsed.tokens.some(t => (t.isCitation || t.isVerbatim || t.isMarkup) && ((t.start < at && t.end > at) || (t.start < end && t.end > end)));
         const latinCut = (/[\p{Script=Latin}\d]/u.test(text[0]) && /[\p{Script=Latin}\d]/u.test(source[at - 1] ?? '')) ||
           (/[\p{Script=Latin}\d]/u.test(text.at(-1)!) && /[\p{Script=Latin}\d]/u.test(source[end] ?? ''));
-        if (!protectedCut && !latinCut) add(at, end, 'term', autoSelect);
+        if (!protectedCut && !latinCut) add(at, end, 'term', autoSelect, autoSelect ? 'llm-term' : 'llm-suggestion');
         at = source.indexOf(text, end);
       }
     }
@@ -219,12 +238,12 @@ function applyRow(source: string, id: string, base: ReturnType<typeof parseSente
   const toGroup = (a: number, b: number, kind: TokenGroup['kind'], index: number): TokenGroup => ({
     id: `${id}_llm_${kind}_${index}`, startIndex: tokens.findIndex(t => t.start === a), endIndex: tokens.findIndex(t => t.end === b), label: source.slice(a, b), kind, autoSelect: true,
   });
-  const groups = spans.sort((x, y) => x.a - y.a).map((s, i) => ({ ...toGroup(s.a, s.b, s.kind, i), autoSelect: s.autoSelect })).filter(g => g.endIndex > g.startIndex);
+  const groups = spans.sort((x, y) => x.a - y.a).map((s, i) => ({ ...toGroup(s.a, s.b, s.kind, i), autoSelect: s.autoSelect, source: s.source })).filter(g => g.endIndex > g.startIndex);
   const pairedGroups = parsed.pairedGroups.map((g, i) => ({ ...toGroup(parsed.tokens[g.startIndex].start, parsed.tokens[g.endIndex].end, g.kind, i), autoSelect: g.autoSelect }));
   if (tokens.map(t => t.text).join('') !== source || pairedGroups.some(g => g.startIndex < 0 || g.endIndex < 0)) throw new Error(`${id} 的边界校验失败。`);
-  const candidateGroups = candidates.map((s, i) => ({ ...toGroup(s.a, s.b, s.kind, i + spans.length), autoSelect: false }))
+  const candidateGroups = candidates.map((s, i) => ({ ...toGroup(s.a, s.b, s.kind, i + spans.length), autoSelect: false, source: s.source }))
     .filter(g => g.endIndex > g.startIndex);
-  return { tokens, groups, pairedGroups, candidateGroups };
+  return { tokens, groups, pairedGroups, candidateGroups, groupDecisions, excludedGroupRanges: excluded.map(([start,end]) => ({start,end})) };
 }
 
 export async function buildAssistedSentences(prep: Preparation, result: AssistedResult): Promise<Sentence[]> {

@@ -15,8 +15,9 @@ const shortcuts = [
   ['上一句', '小键盘 +'],
   ['逐词移动 / 调整选区', '4 / 6'],
   ['上移一行 / 下移一行', '8 / 2'],
-  ['扩成词组 / 收回', '9 / 7'],
+  ['扩成词组 / 收回', '7 / 9'],
   ['按下选择，松开插入', '5'],
+  ['跳到原文句尾', '3'],
   ['取消预选 / 本次抓取', '1'],
   ['完成并切到下一句', 'Enter'],
   ['换行', 'Shift + Enter'],
@@ -107,7 +108,7 @@ export function NavigationControls() {
                   aria-pressed={usePreferencesStore.getState().captureUnit === value}
                   onClick={() => usePreferencesStore.getState().setCaptureUnit(value)}>{value === 'word' ? '按词' : '按词组'}</Button>)}
               </div>
-              <p className="ui-caption help-copy">按词组时整组进入、整组退回；按 7 拆开的词组暂时保持细选。</p>
+              <p className="ui-caption help-copy">按词组时整组进入、整组退回；按 9 拆开的词组暂时保持细选。</p>
             </div>
             <div>
               <span className="help-setting-label">进度计算方式</span>
@@ -125,7 +126,7 @@ export function NavigationControls() {
                 <input type="checkbox" role="switch" checked={autoAdvanceAfterCapture}
                   onChange={event => usePreferencesStore.getState().setAutoAdvanceAfterCapture(event.target.checked)} />
               </label>
-              <p className="ui-caption help-copy">关闭后，鼠标或小键盘 5 抓取完成时，不再自动跳到邻近词。</p>
+              <p className="ui-caption help-copy">开启后从选区右侧继续；关闭后停在选区最右端。正向、反向抓取都遵守此规则。</p>
             </div>
             <label className="preference-toggle">
               <span>自动整组选词</span>
@@ -163,11 +164,11 @@ export function NavigationControls() {
             {shortcuts.map(([label, key]) => <li key={key}><span>{label}</span>
               <kbd className={key === '5' ? 'shortcut-primary' : undefined}>{key}</kbd></li>)}
           </ul>
-          <p className="ui-caption help-copy">数字键指小键盘。按住 5，用 4/6 连续选词；9 扩展当前块，7 收回。也可先按 9 预选，再点按 5。</p>
-          <p className="ui-caption help-copy">实线表示默认词组，虚线表示可扩展部分。同一行直接相接的线属于同一候选，独立词组之间留有断口。标线不随光标改变；墨蓝色仅提醒全文术语。9 扩选、7 撤回。</p>
+          <p className="ui-caption help-copy">数字键指小键盘。按住右 Alt，QWE / ASD / ZXC 对应 789 / 456 / 123；右 Shift 上一页、右 Ctrl 下一页，可长按。松开右 Alt 恢复打字。按住 5，用 4/6 连续选词；7 扩展当前块，9 收回。也可先按 7 预选，再点按 5。</p>
+          <p className="ui-caption help-copy">实线表示默认词组，虚线表示可扩展部分。线段间的小点表示同一候选，跨行端点小点表示延续；无关词组之间留空。标线不随光标改变；墨蓝色仅提醒全文术语。7 扩选、9 撤回。</p>
           <p className="ui-caption help-copy">Page Up / Page Down 可长按连续翻页，松开即停。小键盘 + 返回上一句，Enter 完成并进入下一句，长按均只执行一次；主键盘加号正常输入。</p>
-          <p className="ui-caption help-copy">自动整选后，7 回到进入时的词：从左进入回组首，从右进入回组尾。上下移动或鼠标定位保留落点。9 可逐层扩展，7 逐层收回；离开该组前保持细选。</p>
-          <p className="ui-caption help-copy">8/2 按屏幕实际行上下移动，尽量保持横向位置；按住 5 或手动预选时不换行。括号、引号和运算符可用键盘定位；普通停顿标点跳过，但范围抓取仍保留。3 暂无快捷功能。</p>
+          <p className="ui-caption help-copy">自动整选后，9 回到进入时的词：从左进入回组首，从右进入回组尾。上下移动或鼠标定位保留落点。7 可逐层扩展，9 逐层收回；离开该组前保持细选。</p>
+          <p className="ui-caption help-copy">8/2 按屏幕实际行上下移动，尽量保持横向位置；按住 5 或手动预选时不换行。括号、引号和运算符可用键盘定位；普通停顿标点跳过，但范围抓取仍保留。3 跳到当前原文句尾。</p>
           <p className="ui-caption help-copy">翻译进度按已有非空译文的卡片占比统计，不代表审核完成；清空译文会扣除进度。当前页显示正在查看的位置。</p>
           </div>
         </motion.section>}

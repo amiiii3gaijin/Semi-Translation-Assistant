@@ -13,22 +13,25 @@ export interface Token {
 }
 
 export interface TokenGroup {
+  source?: 'local' | 'llm-term' | 'llm-suggestion' | 'llm-local' | 'short-clause';
   id: string;
   startIndex: number;
   endIndex: number;
   label: string;
   kind: 'term' | 'citation' | 'expression' | 'phrase' | 'quoted' | 'bracket';
-  autoSelect?: boolean; // Long paired passages require explicit 9 expansion.
+  autoSelect?: boolean; // Long paired passages require explicit expansion.
 }
 
 export interface Sentence {
+  excludedGroupRanges?: { start: number; end: number }[];
+  groupDecisions?: { text: string; source: string; outcome: string }[];
   segmentationSource?: 'llm'; // Retain reviewed boundaries across local parser upgrades.
   id: string;             // UUID
   index: number;          // Natural index in the full text
   originalText: string;   // Original Chinese sentence
   tokens: Token[];        // Tokenized array
   groups: TokenGroup[];
-  candidateGroups?: TokenGroup[]; // Nested alternatives, expanded with 9; no extra ribbons.
+  candidateGroups?: TokenGroup[]; // Nested alternatives, expanded with 7.
   consistencyTerms?: (TokenGroup & { count: number })[]; // Verified repeated terms; never affect selection.
   pairedGroups?: TokenGroup[]; // Structural ranges, independent of visible term markers.
   parserVersion: number;

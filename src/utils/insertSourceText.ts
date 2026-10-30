@@ -2,6 +2,7 @@ import { useDocumentStore } from '../store/useDocumentStore';
 import { nextWord } from './sourceSelection';
 import { needsWordSpace } from './captureText';
 import { usePreferencesStore } from '../store/usePreferencesStore';
+import { useSelectionStore } from '../store/useSelectionStore';
 
 export interface TranslationTarget { start: number; end: number; value: string }
 
@@ -35,9 +36,11 @@ export function insertSourceText(sentenceId: string, text: string, sourceEnd: nu
       textarea.setSelectionRange(caret, caret);
     }
   });
-  if (usePreferencesStore.getState().autoAdvanceAfterCapture) {
-    store.setActiveTokenIndex(sentenceId, nextWord(sentence.tokens, sourceEnd, 1)
-      ?? nextWord(sentence.tokens, sourceEnd + 1, -1) ?? 0);
-  }
+  const advance = usePreferencesStore.getState().autoAdvanceAfterCapture;
+  const next = advance ? nextWord(sentence.tokens, sourceEnd, 1) : null;
+  const landing = next ?? nextWord(sentence.tokens, sourceEnd + 1, -1) ?? 0;
+  store.setActiveTokenIndex(sentenceId, landing);
+  useSelectionStore.getState().setEntry({ sentenceId, index: landing });
+  useSelectionStore.getState().setFineRange(next === null ? { sentenceId, start: landing, end: landing } : null);
   return true;
 }

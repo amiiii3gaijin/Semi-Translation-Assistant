@@ -1,0 +1,61 @@
+import assert from 'node:assert/strict';
+import { build } from 'esbuild';
+
+const listeners=new Map<string, Function[]>();
+const globals=globalThis as any;
+let cleanup:Function|undefined;
+globals.__effect=(fn:Function)=>{cleanup=fn();};
+const store=(initial:any)=>{ let state=initial; const subs=new Set<Function>(); const api:any=()=>state;
+ api.getState=()=>state;api.subscribe=(fn:Function)=>{subs.add(fn);return()=>subs.delete(fn);};
+ api.setState=(patch:any)=>{const prev=state;state={...state,...patch};subs.forEach(fn=>fn(state,prev));};return api;};
+const sentence={id:'s',index:0,originalText:'甲乙丙丁',tokens:Array.from('甲乙丙丁').map((text,i)=>({id:String(i),text,start:i,end:i+1,isPunctuation:false})),groups:[],candidateGroups:[],parserVersion:7,translatedText:'',status:'active',activeTokenIndex:3};
+const doc=store({sentences:[sentence],currentActiveIndex:0,documentId:'d'});
+let pages=0;
+doc.setState({setActiveTokenIndex:(_:string,index:number)=>doc.setState({sentences:[{...doc.getState().sentences[0],activeTokenIndex:index}]}),
+ updateTranslation:(_:string,text:string)=>doc.setState({sentences:[{...doc.getState().sentences[0],translatedText:text}]}),
+ prevSentence:()=>{pages--;},nextSentence:()=>{pages++;},markCurrentSentenceCompleted:()=>{}});
+const pref=store({autoSelectGroups:true,captureUnit:'word',autoAdvanceAfterCapture:false,spaceCapturedWords:false});
+const selection=store({selection:null,entry:null,fineRange:null});
+selection.setState({setSelection:(value:any)=>selection.setState({selection:value}),setEntry:(value:any)=>selection.setState({entry:value}),setFineRange:(value:any)=>selection.setState({fineRange:value})});
+globals.__doc=doc;globals.__pref=pref;globals.__selection=selection;
+const area:any={value:'',selectionStart:0,selectionEnd:0,dataset:{sentenceId:'s'},isConnected:true,focus(){},setSelectionRange(a:number,b:number){this.selectionStart=a;this.selectionEnd=b;},closest(){return null;}};
+globals.window={addEventListener:(name:string,fn:Function)=>listeners.set(name,[...(listeners.get(name)??[]),fn]),removeEventListener:(name:string,fn:Function)=>listeners.set(name,(listeners.get(name)??[]).filter(f=>f!==fn))};
+globals.document={hidden:false,querySelector:()=>null,querySelectorAll:()=>[],execCommand:()=>false,addEventListener:globals.window.addEventListener,removeEventListener:globals.window.removeEventListener};
+globals.requestAnimationFrame=(fn:Function)=>{fn();return 0;};
+const bundle=await build({entryPoints:['src/hooks/useKeyboardShortcuts.ts'],bundle:true,write:false,format:'esm',platform:'node',plugins:[{name:'test-boundary',setup(b){
+ b.onResolve({filter:/^(react)$|useDocumentStore$|usePreferencesStore$|useSelectionStore$/},args=>({path:args.path,namespace:'mock'}));
+ b.onLoad({filter:/.*/,namespace:'mock'},args=>({contents:args.path==='react'?'export default {};export const useEffect=globalThis.__effect;':args.path.endsWith('useDocumentStore')?'export const useDocumentStore=globalThis.__doc;':args.path.endsWith('usePreferencesStore')?'export const usePreferencesStore=globalThis.__pref;':'export const useSelectionStore=globalThis.__selection;',loader:'js'}));
+}}]});
+const mod=await import('data:text/javascript;base64,'+Buffer.from(bundle.outputFiles[0].text).toString('base64'));
+mod.useKeyboardShortcuts({current:area});
+const event=(type:string,code:string,extra:any={})=>{const e:any={code,target:area,repeat:false,ctrlKey:false,altKey:false,shiftKey:false,metaKey:false,isComposing:false,prevented:false,preventDefault(){this.prevented=true;},stopPropagation(){},...extra};listeners.get(type)?.forEach(fn=>fn(e));return e;};
+const down=(c:string,e:any={})=>event('keydown',c,e),up=(c:string,e:any={})=>event('keyup',c,e);
+assert.equal(down('KeyS').prevented,false,'normal typing untouched');
+down('AltRight',{altKey:true});down('KeyS',{altKey:true});down('KeyA',{altKey:true});down('KeyA',{altKey:true});up('KeyS',{altKey:true});
+assert.equal(area.value,'乙丙丁');assert.equal(doc.getState().sentences[0].activeTokenIndex,3,'reverse capture rests at right edge');
+const before=area.value;down('KeyS',{altKey:true});up('AltRight');up('KeyS');assert.equal(area.value,before,'releasing layer before capture cancels');
+down('AltRight',{altKey:true});down('KeyS',{altKey:true});listeners.get('blur')?.forEach(fn=>fn());up('KeyS');assert.equal(area.value,before,'blur cancels capture');
+down('AltRight',{altKey:true});assert.equal(down('KeyQ',{altKey:true,isComposing:true}).prevented,false);assert.equal(down('KeyS').prevented,false,'composition exits layer');
+doc.getState().setActiveTokenIndex('s',0);down('Numpad3');assert.equal(doc.getState().sentences[0].activeTokenIndex,3);
+down('AltRight',{altKey:true});down('ShiftRight',{altKey:true,shiftKey:true});await new Promise(r=>setTimeout(r,520));up('ShiftRight',{altKey:true});const stopped=pages;assert.ok(stopped<=-2,'modifier key gets explicit repeat timer');await new Promise(r=>setTimeout(r,180));assert.equal(pages,stopped,'release stops repeat');up('AltRight');
+assert.equal(down('ControlLeft',{ctrlKey:true}).prevented,false,'ordinary Ctrl preserved');
+const leftBaseline=pages;
+down('AltRight',{altKey:true});
+assert.equal(down('ControlLeft',{altKey:true,ctrlKey:true}).prevented,false);
+assert.equal(down('ShiftLeft',{altKey:true,shiftKey:true}).prevented,false);
+assert.equal(pages,leftBaseline,'left modifiers no longer navigate');
+down('ControlRight',{altKey:true,ctrlKey:true});
+assert.equal(pages,leftBaseline+1,'right Ctrl navigates down');
+up('ControlRight',{altKey:true});up('AltRight');
+assert.equal(down('ShiftRight',{shiftKey:true}).prevented,false,'right Shift without layer preserves typing');
+assert.equal(down('ControlRight',{ctrlKey:true}).prevented,false,'right Ctrl without layer preserves typing');
+// Swap semantics must run through the actual hook.
+doc.setState({sentences:[{...sentence,activeTokenIndex:1,groups:[{id:'g',startIndex:1,endIndex:2,label:'乙丙',kind:'phrase',autoSelect:true}]}]});
+selection.getState().setSelection(null);selection.getState().setFineRange({sentenceId:'s',start:1,end:2});
+down('Numpad7');assert.equal(selection.getState().selection.end,2);down('Numpad9');assert.equal(doc.getState().sentences[0].activeTokenIndex,1);
+down('AltRight',{altKey:true,ctrlKey:true});down('KeyQ',{altKey:true,ctrlKey:true});up('AltRight');
+assert.equal(selection.getState().selection.end,2,'AltGr-style flags work; releasing Alt preserves a completed preview');
+down('Numpad9');
+pref.setState({autoAdvanceAfterCapture:true});doc.getState().setActiveTokenIndex('s',0);selection.getState().setFineRange(null);
+down('Numpad5');up('Numpad5');assert.equal(doc.getState().sentences[0].activeTokenIndex,1,'advance goes right');
+cleanup?.();console.log('Actual keyboard hook: Alt layer, reverse capture, cancellation, composition, paging repeat, 7/9 swap and end jump passed (simulated DOM).');
