@@ -97,7 +97,7 @@ export function TokenList({ sentence, textareaRef, isActive = true }: TokenListP
   return <div className="w-full min-w-0">
     <div ref={sourceRef} data-source-text data-source-sentence={sentence.id} className="source-flow" aria-label="原文选词区"
       style={{ '--selection-scale': SELECTION_SCALE, '--selection-lift': `-${SELECTION_LIFT}px` } as React.CSSProperties}>
-      <SelectionSurface container={sourceRef} sentence={sentence} selected={isActive ? selectedRange : { start: -1, end: -1 }} isActive={isActive} />
+      <SelectionSurface container={sourceRef} sentence={sentence} selection={local} selected={isActive ? selectedRange : { start: -1, end: -1 }} isActive={isActive} />
       {sentence.tokens.map((_, index) => renderToken(index))}
     </div>
   </div>;

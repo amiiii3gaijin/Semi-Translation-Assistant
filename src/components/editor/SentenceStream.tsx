@@ -1,11 +1,8 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef } from 'react';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
-import { Eye } from 'lucide-react';
 import { useDocumentStore } from '../../store/useDocumentStore';
 import { SentenceCard } from './SentenceCard';
 import { useKeyboardShortcuts } from '../../hooks/useKeyboardShortcuts';
-import { SentenceTrunk } from './SentenceTrunk';
-import { Button } from '../common/Button';
 import { UI_MOTION } from '../../design/motion';
 
 export function SentenceStream() {
@@ -13,7 +10,6 @@ export function SentenceStream() {
   const currentActiveIndex = useDocumentStore(state => state.currentActiveIndex);
   const nextSentence = useDocumentStore(state => state.nextSentence);
   const prevSentence = useDocumentStore(state => state.prevSentence);
-  const [showTrunk, setShowTrunk] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const scrollPositions = useRef(new Map<string, number>());
   const reducedMotion = useReducedMotion();
@@ -49,7 +45,6 @@ export function SentenceStream() {
   }, [nextSentence, prevSentence]);
 
   if (!sentences.length) return null;
-  const currentSentence = sentences[currentActiveIndex];
   const getCylinderStyles = (diff: number) => {
     const radius = 900;
     const angleDeg = diff * 22;
@@ -89,19 +84,6 @@ export function SentenceStream() {
         })}
       </AnimatePresence>
     </div>
-    {currentSentence && <div className="trunk-dock">
-      <AnimatePresence>
-        {showTrunk && <motion.div id="sentence-trunk" className="ui-panel trunk-popover"
-          initial={{ opacity: 0, y: 8, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }}
-          exit={{ opacity: 0, y: 8, scale: 0.98 }} transition={UI_MOTION.panel}>
-          <div className="trunk-scroll overflow-y-auto custom-scrollbar"><SentenceTrunk tokens={currentSentence.tokens} /></div>
-        </motion.div>}
-      </AnimatePresence>
-      <Button className="trunk-toggle" aria-expanded={showTrunk} aria-controls="sentence-trunk"
-        onClick={() => setShowTrunk(value => !value)}>
-        <Eye className="ui-icon" aria-hidden="true" />{showTrunk ? '隐藏结构主干' : '显示结构主干'}
-      </Button>
-    </div>}
   </div>;
 }
 

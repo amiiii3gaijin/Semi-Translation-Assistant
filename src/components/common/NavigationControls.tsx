@@ -94,6 +94,12 @@ export function NavigationControls() {
           </div>
           <div className="help-settings">
             <div>
+              <label className="preference-toggle"><span>突出全文术语</span>
+                <input type="checkbox" role="switch" checked={usePreferencesStore.getState().highlightConsistency}
+                  onChange={event => usePreferencesStore.getState().setHighlightConsistency(event.target.checked)} /></label>
+              <p className="ui-caption help-copy">蓝灰色提示全文重复的核心术语，最多五个。仅新版 LLM 导入提供，不改变选词操作。</p>
+            </div>
+            <div>
               <span className="help-setting-label">长按 5 连选单位</span>
               <div className="preference-choices" role="group" aria-label="长按 5 连选单位">
                 {(['word', 'group'] as const).map(value => <Button key={value}
@@ -158,7 +164,7 @@ export function NavigationControls() {
               <kbd className={key === '5' ? 'shortcut-primary' : undefined}>{key}</kbd></li>)}
           </ul>
           <p className="ui-caption help-copy">数字键指小键盘。按住 5，用 4/6 连续选词；9 扩展当前块，7 收回。也可先按 9 预选，再点按 5。</p>
-          <p className="ui-caption help-copy">贴近文字的灰色圆头线标出候选词组，蓝色胶囊表示整个选区。隐藏标记后仍可用 9/7 扩缩。鼠标直接拖选，松开插入。</p>
+          <p className="ui-caption help-copy">实线表示默认词组，虚线表示可扩展部分。同一行直接相接的线属于同一候选，独立词组之间留有断口。标线不随光标改变；墨蓝色仅提醒全文术语。9 扩选、7 撤回。</p>
           <p className="ui-caption help-copy">Page Up / Page Down 可长按连续翻页，松开即停。小键盘 + 返回上一句，Enter 完成并进入下一句，长按均只执行一次；主键盘加号正常输入。</p>
           <p className="ui-caption help-copy">自动整选后，7 回到进入时的词：从左进入回组首，从右进入回组尾。上下移动或鼠标定位保留落点。9 可逐层扩展，7 逐层收回；离开该组前保持细选。</p>
           <p className="ui-caption help-copy">8/2 按屏幕实际行上下移动，尽量保持横向位置；按住 5 或手动预选时不换行。括号、引号和运算符可用键盘定位；普通停顿标点跳过，但范围抓取仍保留。3 暂无快捷功能。</p>

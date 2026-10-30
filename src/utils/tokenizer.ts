@@ -7,7 +7,7 @@ import { markdownMarkers } from './textStructure';
 // Vite resolves ESM; Node resolves the package's CommonJS entry.
 const { Segment, useDefault } = (Reflect.get(Segmentit, 'default') ?? Segmentit) as typeof Segmentit;
 
-export const PARSER_VERSION = 5;
+export const PARSER_VERSION = 6;
 let segmentitInstance: ReturnType<typeof useDefault> | null = null;
 const getSegmentit = () => segmentitInstance ?? (segmentitInstance = useDefault(new Segment()));
 
@@ -23,7 +23,7 @@ function partOfSpeech(p?: number): string {
 export interface TokenTrace { start: number; end: number; origin: 'segmentit' | 'lexicon' | 'source-gap' | 'protected-run' | 'document-term' | 'boundary-repair' }
 
 // Basic word boundaries, separate from semantic phrase suggestions.
-const WORD_BOUNDARIES = ['量身定制', '标志物', '语言', '文化', '报告', '水平', '成长', '学生', '心理学', '信托', '托付', '全部', '互操作', '长视频', '断订'];
+const WORD_BOUNDARIES = ['量身定制', '标志物', '语言', '文化', '报告', '水平', '成长', '学生', '心理学', '信托', '托付', '全部', '互操作', '长视频', '断订', '防控'];
 
 export function tokenize(sentence: string, sentenceId: string, observe?: (trace: TokenTrace) => void, context?: ParserContext): Token[] {
   const tokens: Token[] = [];

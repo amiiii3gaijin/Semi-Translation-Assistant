@@ -29,6 +29,7 @@ export interface Sentence {
   tokens: Token[];        // Tokenized array
   groups: TokenGroup[];
   candidateGroups?: TokenGroup[]; // Nested alternatives, expanded with 9; no extra ribbons.
+  consistencyTerms?: (TokenGroup & { count: number })[]; // Verified repeated terms; never affect selection.
   pairedGroups?: TokenGroup[]; // Structural ranges, independent of visible term markers.
   parserVersion: number;
   translatedText: string; // Translation typed by user

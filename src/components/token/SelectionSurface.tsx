@@ -5,20 +5,24 @@ import { SELECTION_LIFT, SELECTION_SCALE, UI_MOTION } from '../../design/motion'
 import { usePreferencesStore } from '../../store/usePreferencesStore';
 import { phraseRibbonPath, ribbonMetrics, RibbonSurface } from '../../utils/phraseRibbon';
 import { getRibbonParameters, ribbonColor, ribbonReadings, RibbonReading, useRibbonParameters } from '../../design/ribbonParameters';
+import { phraseMarkers } from '../../utils/phraseMarkers';
+import { fittedDashes } from '../../utils/markerPolicy';
+import { type SourceSelection } from '../../utils/sourceSelection';
 
 interface SurfaceRect { x: number; y: number; width: number; height: number; row: number }
 interface Bounds { start: number; end: number }
 interface Geometry {
   selected: SurfaceRect[];
-  markers: (SurfaceRect & { id: string })[];
+  markers: (SurfaceRect & { id: string; dashed: boolean; consistent: boolean })[];
   fontSize: number;
 }
 
 /** One continuous selection surface per visual line, including a one-word range. */
-export function SelectionSurface({ container, sentence, selected, isActive = true }: {
+export function SelectionSurface({ container, sentence, selected, selection, isActive = true }: {
   container: RefObject<HTMLDivElement | null>;
   sentence: Sentence;
   selected: Bounds;
+  selection?: SourceSelection | null;
   isActive?: boolean;
 }) {
   const parameters = useRibbonParameters();
@@ -70,6 +74,8 @@ export function SelectionSurface({ container, sentence, selected, isActive = tru
   };
   const reducedMotion = useReducedMotion();
   const showPhraseMarkers = usePreferencesStore(state => state.showPhraseMarkers);
+  const highlight = usePreferencesStore(state => state.highlightConsistency);
+  const autoGroups = usePreferencesStore(state => state.autoSelectGroups);
   // White text follows the actual moving surface, never an anticipated target.
   const syncTextColor = () => {
     const element = container.current;
@@ -162,10 +168,7 @@ export function SelectionSurface({ container, sentence, selected, isActive = tru
         }
         return [...rows.values()];
       };
-      setGeometry({
-        fontSize,
-        selected: rangeRects(selected),
-        markers: sentence.groups.flatMap(group => {
+      const markers = phraseMarkers(sentence, autoGroups, highlight).flatMap(group => {
           const rows = new Map<number, SurfaceRect>();
           for (const { index, rect } of all) {
             if (index < group.startIndex || index > group.endIndex) continue;
@@ -184,9 +187,28 @@ export function SelectionSurface({ container, sentence, selected, isActive = tru
               y: rect.y + lineHeight / 2 + ribbon.baselineOffset - ribbon.thickness / 2,
               height: ribbon.thickness });
           }
-          return [...rows.values()].map(rect => ({ ...rect, id: `${group.id}-${rect.row}` }));
-        }),
-      });
+          return [...rows.values()].map(rect => ({ ...rect, id: `${group.id}-${rect.row}`, dashed: group.dashed, consistent: group.consistent,
+            connection: group.connection, start: group.startIndex, end: group.endIndex }));
+        }).sort((a, b) => a.row - b.row || a.x - b.x);
+      for (let i = 1; i < markers.length; i++) {
+        const left = markers[i - 1], right = markers[i];
+        if (left.row !== right.row) continue;
+        const edge = left.x + left.width;
+        if (left.connection === right.connection && left.end + 1 === right.start) {
+          // A shared candidate is a joined line; unrelated neighbors retain a visible break.
+          const middle = (edge + right.x) / 2;
+          left.width = middle - left.x;
+          right.width += right.x - middle;
+          right.x = middle;
+        } else {
+          const missingGap = Math.max(0, fontSize * 0.32 - (right.x - edge));
+          const inset = Math.min(missingGap / 2, left.width / 4, right.width / 4);
+          left.width -= inset;
+          right.x += inset;
+          right.width -= inset;
+        }
+      }
+      setGeometry({ fontSize, selected: rangeRects(selected), markers });
       syncTextColor();
       cancelAnimationFrame(frame);
       frame = requestAnimationFrame(syncTextColor);
@@ -197,7 +219,7 @@ export function SelectionSurface({ container, sentence, selected, isActive = tru
     window.addEventListener('resize', measure);
     document.fonts?.ready.then(measure);
     return () => { disposed = true; cancelAnimationFrame(frame); observer.disconnect(); window.removeEventListener('resize', measure); };
-  }, [container, sentence.tokens, sentence.groups, selected.start, selected.end, showPhraseMarkers, parameters]);
+  }, [container, sentence.tokens, sentence.groups, sentence.candidateGroups, sentence.consistencyTerms, sentence.activeTokenIndex, selection, isActive, autoGroups, highlight, selected.start, selected.end, showPhraseMarkers, parameters]);
 
   const transition = reducedMotion ? { duration: 0 } : UI_MOTION.quick;
   return <div className="source-surfaces" aria-hidden="true">
@@ -235,7 +257,10 @@ export function SelectionSurface({ container, sentence, selected, isActive = tru
             node.setAttribute('d', phraseRibbonPath(line, isActive ? [...liveSurfaces.current.values()] : [], geometry.fontSize));
           } else paths.current.delete(line.id);
         }}
-        fill="none" stroke="currentColor" strokeWidth={line.height} strokeLinecap="round" strokeLinejoin="round"
+        fill="none" stroke={line.consistent ? '#173b53' : 'currentColor'}
+        pathLength={line.width}
+        strokeDasharray={line.dashed ? fittedDashes(line.width, geometry.fontSize) : undefined}
+        strokeWidth={line.height} strokeLinecap="round" strokeLinejoin="round"
       />)}
     </svg>}
   </div>;

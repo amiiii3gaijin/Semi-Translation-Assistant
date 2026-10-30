@@ -5,34 +5,22 @@ import { createParserContext, type ParserContext } from './documentTerms';
 import { PARSER_VERSION } from './tokenizer';
 import { buildTokenGroups } from './tokenGroups';
 import { isNavigableToken } from './tokenNavigation';
+import { attachConsistencyTerms } from './consistencyTerms';
+import { frequentPhrases } from './frequentPhrases';
 
 export interface SourceRow { id: string; text: string }
 export interface Preparation { version: 2; key: string; source: string; requirements: string; rows: SourceRow[]; boundaryHints?: { id: string; text: string; parts: string[] }[]; frequent: { text: string; count: number }[] }
 export interface Phrase { text: string; occurrence: number; autoSelect?: boolean }
 export interface Correction extends Phrase { parts: string[] }
 export interface RowResult { id: string; groups: Phrase[]; splits: Correction[]; exclude: Phrase[] }
-export interface AssistedResult { version: 2; document: string; complete: true; terms: string[]; suggestions: string[]; exceptions: RowResult[] }
+export interface AssistedResult { version: 2 | 3; document: string; complete: true; terms: string[]; suggestions: string[]; consistency?: string[]; exceptions: RowResult[] }
 
 export async function prepareImport(source: string, requirements: string): Promise<Preparation> {
   const bytes = new TextEncoder().encode(JSON.stringify([source, requirements, 2, PARSER_VERSION]));
   const hash = await crypto.subtle.digest('SHA-256', bytes);
   const key = Array.from(new Uint8Array(hash), n => n.toString(16).padStart(2, '0')).join('');
   const rows = splitTextIntoSentences(source).map((text, i) => ({ id: `s${i + 1}`, text }));
-  // Character n-grams avoid depending on the very word boundaries being reviewed.
-  const counts = new Map<string, number>();
-  const runs = source.match(/[\p{Script=Han}]+|[A-Za-z]+(?:[ '-][A-Za-z]+){0,4}/gu) ?? [];
-  for (let i = 0; i < runs.length; i++) {
-    const run = runs[i];
-    if (/^[A-Za-z]/.test(run)) counts.set(run, (counts.get(run) ?? 0) + 1);
-    else for (let start = 0; start < run.length; start++) for (let n = 2; n <= 8 && start + n <= run.length; n++) {
-      const text = run.slice(start, start + n); counts.set(text, (counts.get(text) ?? 0) + 1);
-    }
-    if (i % 200 === 0) await new Promise(r => setTimeout(r, 0));
-  }
-  const ranked = [...counts].filter(([text, count]) => count >= 3 && !/[的了是在与和]/.test(text))
-    .sort((a, b) => b[1] * Math.log2(b[0].length + 1) - a[1] * Math.log2(a[0].length + 1)).slice(0, 400);
-  const frequent = ranked.filter(([text, count]) => !ranked.some(([other, n]) => other !== text && other.includes(text) && n === count))
-    .slice(0, 24).map(([text, count]) => ({ text, count }));
+  const frequent = await frequentPhrases(source, rows);
   const boundaryHints: NonNullable<Preparation['boundaryHints']> = [];
   const seen = new Set<string>();
   const context = createParserContext(source);
@@ -73,10 +61,13 @@ export function makePrompt(prep: Preparation): string {
 - 不返回“点一下就能”这种缺少后续动作的悬空片段。不为完整英文句子逐项标注；中文内的英文专名或中英混合概念仍需考虑。
 - 保留组内细词，只修明显坏边界。引用、公式、单位和原始空格由程序保护，不必逐个登记。简单单词无需重复列出。
 - 高频参考可能有噪声；阅读全文，检查是否漏了短动作、状态、修饰部分。不凑数量，不枚举整句，不解释理由。
-仅返回一个精简 JSON（可带代码框）：
-{"version":2,"document":"${prep.key}","complete":true,"terms":[],"suggestions":[],"exceptions":[]}
+减少冗余不等于减少有用候选：检查是否漏了完整短动作、时间条件或修饰表达。不要用整句候选替代这些短范围。“学科名称＋说明”这样的普通主谓组合不宜成组。
+只返回一个标记为 json 的代码块，代码块外不写任何内容，全部字段放在同一个代码块中：
+{"version":3,"document":"${prep.key}","complete":true,"terms":[],"suggestions":[],"consistency":[],"exceptions":[]}
 terms：默认整选的原文表达，出现一次也可入选，每个只写一次。程序自动匹配其他相同位置。
-suggestions：有用但不宜默认整选的原文表达，每个只写一次，不与 terms 重复。
+suggestions：只能通过向外扩大当前细词或默认组得到的较大表达。不要把默认组内部的小片段或交叉替代切法放进来。每个只写一次，不与 terms 重复。
+不要仅为默认词组添加“的地方、的东西、的事情”这类泛化尾部生成候选；用户通常会自己组织这些英文关系。保留增加实质动作、条件或专业意义的扩展。
+consistency：0—5 个值得全文一致处理的核心学术概念或专业表达，按重要性排序，宁缺毋滥。须有重复使用证据且概念明确，优先中心主题和被解释的核心概念。不要凑满五个，不选“本文”“说明”、泛化词或偶然重复字串，不把相关名称擅自合并。它只决定提醒属性，不决定选区大小，可以与 terms/suggestions 重复。不要报告次数或译法，程序会核实；只出现一次的学科名称不因专业性入选。
 exceptions：用于局部有用表达、排除错误组合及修正基础切词，正常片段全部省略。每条含 id，可按需加 groups、exclude、splits，未使用字段省略。
 groups 示例：{"text":"精确原文","occurrence":1,"autoSelect":false}，autoSelect 默认 true。只在该处需要时使用局部组。
 exclude 示例：{"text":"此处不要成组的精确原文","occurrence":1}，用于排除本地或全文词表的某次匹配。
@@ -104,7 +95,7 @@ export function validateReply(raw: string, prep: Preparation): AssistedResult {
   let value: any;
   try { value = JSON.parse(raw.slice(raw.indexOf('{'), raw.lastIndexOf('}') + 1)); }
   catch { throw new Error('未识别到一个完整结果，请只粘贴本次回复，或复制修复请求。'); }
-  if (value?.version !== 2) throw new Error('这是旧版或不兼容的结果，请重新复制新版完整任务。');
+  if (value?.version !== 2 && value?.version !== 3) throw new Error('这是旧版或不兼容的结果，请重新复制新版完整任务。');
   if (value.document !== prep.key) throw new Error('结果与当前原文或术语要求不匹配，请重新复制任务。');
   if (value.complete !== true) throw new Error('回复未声明全文处理完成，请让 LLM 补全后返回完整结果。');
   const list = (input: unknown, name: string): string[] => {
@@ -114,6 +105,8 @@ export function validateReply(raw: string, prep: Preparation): AssistedResult {
   };
   const terms = list(value.terms, '默认抓取列表');
   const suggestions = list(value.suggestions ?? [], '候选列表').filter(t => !terms.includes(t));
+  const consistency = value.version === 3 ? list(value.consistency ?? [], '全文术语') : [];
+  if (consistency.length > 5) throw new Error('全文术语最多五个，请保留最重要的表达。');
   if (!Array.isArray(value.exceptions) || value.exceptions.length > prep.rows.length) throw new Error('局部修正格式不正确。');
   const seen = new Set<string>();
   const exceptions: RowResult[] = value.exceptions.map((row: any) => {
@@ -134,7 +127,7 @@ export function validateReply(raw: string, prep: Preparation): AssistedResult {
       throw new Error(`${row.id} 的细分改变了原文或空格。`);
     return clean;
   });
-  return { version: 2, document: prep.key, complete: true, terms, suggestions, exceptions };
+  return { version: value.version, document: prep.key, complete: true, terms, suggestions, consistency, exceptions };
 }
 
 /** Apply reviewed fine boundaries first. Old group edges must not undo a repair. */
@@ -172,7 +165,11 @@ function applyRow(source: string, id: string, base: ReturnType<typeof parseSente
   const excluded = result.exclude.map(p => locate(source, p));
   const add = (a: number, b: number, kind: TokenGroup['kind'], autoSelect: boolean) => {
     if (cutsRepair(a, b) || excluded.some(([x, y]) => x === a && y === b)) return;
+    // A complete fine word needs no group and must not reserve its span.
+    if (parsed.tokens.some(t => t.start <= a && t.end >= b)) return;
     const overlaps = spans.filter(s => s.a < b && s.b > a);
+    // Optional ranges must grow existing defaults, never cut or sit inside one.
+    if (!autoSelect && overlaps.some(s => !(a <= s.a && b >= s.b))) return;
     if (!overlaps.length) spans.push({ a, b, kind, autoSelect });
     else if (!overlaps.some(s => s.a === a && s.b === b)
       && overlaps.every(s => (a <= s.a && b >= s.b) || (s.a <= a && s.b >= b))
@@ -246,5 +243,6 @@ export async function buildAssistedSentences(prep: Preparation, result: Assisted
     if (sentences.length % 15 === 0) await new Promise(r => setTimeout(r, 0));
   }
   if (sentences.map(s => s.originalText).join('') !== prep.source) throw new Error('原文完整性校验失败。');
+  attachConsistencyTerms(sentences, validated.consistency ?? []);
   return sentences;
 }

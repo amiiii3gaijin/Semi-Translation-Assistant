@@ -1,5 +1,6 @@
 import { Sentence, Token } from '../types';
 import { isNavigableToken } from './tokenNavigation';
+import { usefulCandidate } from './markerPolicy';
 
 export type Direction = -1 | 1;
 export interface SelectionShape {
@@ -45,6 +46,7 @@ export function moveSelection(selection: SourceSelection, tokens: Token[], direc
 export function expandSelection(selection: SourceSelection, sentence: Sentence): SourceSelection {
   const pair = sentence.pairedGroups?.find(g => g.startIndex === selection.cursor || g.endIndex === selection.cursor);
   const group = [pair, ...sentence.groups, ...(sentence.candidateGroups ?? [])]
+    .filter(g => !g || g.autoSelect !== false || usefulCandidate(sentence, g))
     .filter((g): g is NonNullable<typeof g> => !!g && g.startIndex <= selection.blockStart && g.endIndex >= selection.blockEnd
       && (g.startIndex < selection.blockStart || g.endIndex > selection.blockEnd))
     .sort((a, b) => (a.endIndex - a.startIndex) - (b.endIndex - b.startIndex))[0];

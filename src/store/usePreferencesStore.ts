@@ -2,6 +2,8 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
 interface Preferences {
+  highlightConsistency: boolean;
+  setHighlightConsistency: (value: boolean) => void;
   captureUnit: 'word' | 'group';
   progressMode: 'filled' | 'position';
   setCaptureUnit: (value: 'word' | 'group') => void;
@@ -17,6 +19,8 @@ interface Preferences {
 }
 
 export const usePreferencesStore = create<Preferences>()(persist(set => ({
+  highlightConsistency: false,
+  setHighlightConsistency: highlightConsistency => set({ highlightConsistency }),
   captureUnit: 'group',
   progressMode: 'filled',
   setCaptureUnit: captureUnit => set({ captureUnit }),
