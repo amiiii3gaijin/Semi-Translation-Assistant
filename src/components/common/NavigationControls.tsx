@@ -17,7 +17,7 @@ const shortcuts = [
   ['上移一行 / 下移一行', '8 / 2'],
   ['扩成词组 / 收回', '7 / 9'],
   ['按下选择，松开插入', '5'],
-  ['跳到原文句尾', '3'],
+  ['跳到当前区域末尾', '3'],
   ['取消预选 / 本次抓取', '1'],
   ['完成并切到下一句', 'Enter'],
   ['换行', 'Shift + Enter'],
@@ -164,7 +164,8 @@ export function NavigationControls() {
             {shortcuts.map(([label, key]) => <li key={key}><span>{label}</span>
               <kbd className={key === '5' ? 'shortcut-primary' : undefined}>{key}</kbd></li>)}
           </ul>
-          <p className="ui-caption help-copy">数字键指小键盘。按住右 Alt，QWE / ASD / ZXC 对应 789 / 456 / 123；右 Shift 上一页、右 Ctrl 下一页，可长按。松开右 Alt 恢复打字。按住 5，用 4/6 连续选词；7 扩展当前块，9 收回。也可先按 7 预选，再点按 5。</p>
+          <p className="ui-caption help-copy">数字键指小键盘。按住右 Alt，QWE / ASD / ZXC 对应 789 / 456 / 123。松开右 Alt 恢复打字。按住 5，用 4/6 连续选词；7 扩展当前块，9 收回。也可先按 7 预选，再点按 5。有注释时，8/2 可上下进入正文或注释，3 跳到当前区域末尾。</p>
+          <p className="ui-caption help-copy">句尾可添加〔注：提示内容〕。注释里的句号不会分卡，也不发送给 LLM；可点选或上下移入后抓取。</p>
           <p className="ui-caption help-copy">实线表示默认词组，虚线表示可扩展部分。线段间的小点表示同一候选，跨行端点小点表示延续；无关词组之间留空。标线不随光标改变；墨蓝色仅提醒全文术语。7 扩选、9 撤回。</p>
           <p className="ui-caption help-copy">Page Up / Page Down 可长按连续翻页，松开即停。小键盘 + 返回上一句，Enter 完成并进入下一句，长按均只执行一次；主键盘加号正常输入。</p>
           <p className="ui-caption help-copy">自动整选后，9 回到进入时的词：从左进入回组首，从右进入回组尾。上下移动或鼠标定位保留落点。7 可逐层扩展，9 逐层收回；离开该组前保持细选。</p>

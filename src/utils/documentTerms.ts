@@ -1,13 +1,15 @@
 import { tokenize } from './tokenizer';
 import { codeBlocks } from './textStructure';
+import { annotationSpans } from './annotations';
 
 export interface DocumentTerm { text: string; pieces: string[]; evidence: 'definition' | 'repeated-label'; count: number }
 export interface ParserContext { terms: DocumentTerm[]; blocks: ReturnType<typeof codeBlocks> }
 
 /** Conservative document glossary: definitions first, never every repeated n-gram. */
 export function createParserContext(source: string): ParserContext {
-  const blocks = codeBlocks(source);
   let masked = source;
+  for (const note of [...annotationSpans(source)].reverse()) masked = masked.slice(0, note.start) + ' '.repeat(note.end - note.start) + masked.slice(note.end);
+  const blocks = codeBlocks(masked);
   for (const block of [...blocks].reverse()) masked = masked.slice(0, block.start) + ' '.repeat(block.end - block.start) + masked.slice(block.end);
   const candidates = new Map<string, DocumentTerm['evidence']>();
   const add = (text: string, evidence: DocumentTerm['evidence'], explicitLabel = false) => {

@@ -9,6 +9,7 @@ import { useUIStore } from '../../store/useUIStore';
 import { ToastNotification } from '../common/ToastNotification';
 import { copyToClipboard, scheduleClipboardCopy } from '../../utils/clipboard';
 import { prepareImport, makePrompt, validateReply, buildAssistedSentences, type Preparation } from '../../utils/llmImport';
+import { annotationWarning } from '../../utils/annotations';
 
 type Mode = 'local' | 'llm';
 interface Draft { version: 2; source: string; mode: Mode; preparation: Preparation | null; reply: string; copied: boolean }
@@ -92,6 +93,8 @@ export function ImportWorkspace() {
       if (draft.mode === 'local') {
         await clearDraft();
         await useDocumentStore.getState().importDocument(draft.source);
+        const warning = annotationWarning(draft.source);
+        if (warning) useUIStore.getState().showToast(warning);
       } else {
         const pending = prepareImport(draft.source, '');
         const text = pending.then(makePrompt);
@@ -115,7 +118,9 @@ export function ImportWorkspace() {
       const result = validateReply(draft.reply, prep);
       const sentences = await buildAssistedSentences(prep, result);
       finishing.current = true;
-      await useDocumentStore.getState().importAssistedDocument(prep.source, sentences);
+      await useDocumentStore.getState().importAssistedDocument(prep.originalSource ?? prep.source, sentences);
+      const warning = annotationWarning(prep.originalSource ?? prep.source);
+      if (warning) useUIStore.getState().showToast(warning);
       await clearDraft();
     } catch (e) { finishing.current = false; setError(e instanceof Error ? e.message : '校验失败，请重试。'); }
     finally { lock.current = false; setBusy(''); }

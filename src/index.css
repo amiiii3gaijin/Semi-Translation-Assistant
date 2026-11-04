@@ -254,6 +254,7 @@ button:disabled { cursor: default; }
 /* Stable word slots preserve line wrapping and source-offset hit testing.
    Every selected face keeps the same raised state until it leaves the selection. */
 .source-flow { position: relative; isolation: isolate; white-space: break-spaces; overflow-wrap: anywhere; text-align: center; line-height: 2; padding: 8px 0; tab-size: 4; touch-action: pan-y; user-select: none; }
+.source-annotation { margin-top: 1.2em; font-size: max(16px, 0.76em); font-weight: 400; line-height: 1.85; text-align: left; color: #626b78; }
 .source-token-slot { display: inline-block; position: relative; vertical-align: baseline; margin: 0 1px; max-width: 100%; z-index: 1; cursor: pointer; }
 .source-token-face { display: inline-block; padding: 0 4px; border-radius: var(--ui-radius-word); transform-origin: center; transition: transform var(--ui-duration-quick) var(--ui-ease), color var(--ui-duration-quick) var(--ui-ease), background-color var(--ui-duration-quick) var(--ui-ease); }
 .source-token-slot:hover .source-token-face:not(.source-token-selected) { background: rgba(0,0,0,0.04); }

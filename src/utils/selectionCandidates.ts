@@ -13,7 +13,7 @@ export function selectionCandidates(sentence: Sentence): TokenGroup[] {
     while (end >= start && sentence.tokens[end].isWhitespace) end--;
     const tokens = sentence.tokens.slice(start, end + 1);
     const words = tokens.filter(t => !t.isWhitespace);
-    if (words.length < 2 || words.length > 4 || words.some(t => t.isCitation || t.isVerbatim || t.isMarkup || t.isPunctuation)) return;
+    if (words.length < 2 || words.length > 4 || words.some(t => t.isAnnotation || t.isCitation || t.isVerbatim || t.isMarkup || t.isPunctuation)) return;
     const text = sentence.originalText.slice(tokens[0].start, tokens.at(-1)!.end);
     if (text.replace(/\s/g, '').length > 14 || !/\p{Script=Han}/u.test(text)) return;
     if (all.some(g => g.startIndex === start && g.endIndex === end)) return;

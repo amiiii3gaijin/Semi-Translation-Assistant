@@ -29,7 +29,16 @@ export function singleSelection(sentence: Sentence, index: number, mode: SourceS
 
 export function nextWord(tokens: Token[], index: number, direction: Direction): number | null {
   for (let i = index + direction; i >= 0 && i < tokens.length; i += direction) {
+    if (tokens[index] && !!tokens[i].isAnnotation !== !!tokens[index].isAnnotation) return null;
     if (isNavigableToken(tokens[i])) return i;
+  }
+  return null;
+}
+
+export function regionLastWord(sentence: Sentence): number | null {
+  const annotation = !!sentence.tokens[sentence.activeTokenIndex]?.isAnnotation;
+  for (let i = sentence.tokens.length - 1; i >= 0; i--) {
+    if (!!sentence.tokens[i].isAnnotation === annotation && isNavigableToken(sentence.tokens[i])) return i;
   }
   return null;
 }
@@ -45,6 +54,7 @@ export function moveSelection(selection: SourceSelection, tokens: Token[], direc
 }
 
 export function expandSelection(selection: SourceSelection, sentence: Sentence): SourceSelection {
+  if (sentence.tokens[selection.cursor]?.isAnnotation) return selection;
   const pair = sentence.pairedGroups?.find(g => g.startIndex === selection.cursor || g.endIndex === selection.cursor);
   const group = [pair, ...sentence.groups, ...selectionCandidates(sentence)]
     .filter(g => !g || g.autoSelect !== false || usefulCandidate(sentence, g))
@@ -98,5 +108,8 @@ export function moveGroupedSelection(selection: SourceSelection, sentence: Sente
 export function sourceText(sentence: Sentence, start: number, end: number): string {
   const a = sentence.tokens[Math.min(start, end)];
   const b = sentence.tokens[Math.max(start, end)];
-  return a && b ? sentence.originalText.slice(a.start, b.end) : '';
+  if (!a || !b || !!a.isAnnotation !== !!b.isAnnotation) return '';
+  return a.isAnnotation
+    ? sentence.tokens.slice(Math.min(start, end), Math.max(start, end) + 1).filter(t => !t.isMarkup).map(t => t.text).join('')
+    : sentence.originalText.slice(a.start, b.end);
 }

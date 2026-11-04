@@ -15,15 +15,17 @@ export async function frequentPhrases(source: string, rows: SourceRow[]) {
     offset += row.text.length;
     for (let start = 0; start < tokens.length; start++) {
       const first = tokens[start];
-      if (first.isWhitespace || first.isPunctuation || first.isCitation || first.isVerbatim || first.isMarkup) continue;
+      if (first.isAnnotation || first.isWhitespace || first.isPunctuation || first.isCitation || first.isVerbatim || first.isMarkup) continue;
       let words = 0;
       for (let end = start; end < tokens.length && words < 4; end++) {
         const token = tokens[end];
-        if (token.isPunctuation || token.isCitation || token.isVerbatim || token.isMarkup) break;
+        if (token.isAnnotation || token.isPunctuation || token.isCitation || token.isVerbatim || token.isMarkup) break;
         if (token.isWhitespace) { if (/[\r\n]/.test(token.text)) break; continue; }
         words++;
         const text = row.text.slice(first.start, token.end);
         if (text.length > 48) break;
+        // Frequency hints are concept candidates, not capture descriptions or connective fragments.
+        if (/[的地得了着]$/u.test(text) || /^(?:还让|也让|需要|其他|作者|这些|那些|每个|只有|约)$/.test(text)) continue;
         if (text.length < 2 || /^(?:本文|说明|能力|问题|认为|这个|这些|目前|因此|所以|一个|可能|显示|解释|已经|这些工具|它们|我们)$/.test(text)) continue;
         const entry = entries.get(text) ?? { count: 0, rows: new Set<string>() };
         entry.count++; entry.rows.add(row.id); entries.set(text, entry);

@@ -23,6 +23,7 @@ export function TokenList({ sentence, textareaRef, isActive = true }: TokenListP
   const local = selection?.sentenceId === sentence.id ? selection : autoGroups ? automaticSelection(sentence) : null;
   const drag = useRef<{ pointerId: number; target?: TranslationTarget } | null>(null);
   const sourceRef = useRef<HTMLDivElement>(null);
+  const noteRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!isActive) return;
@@ -82,6 +83,7 @@ export function TokenList({ sentence, textareaRef, isActive = true }: TokenListP
     }
     const current = useSelectionStore.getState().selection;
     if (!current || current.mode !== 'mouse' || current.sentenceId !== sentence.id) return;
+    if (!!sentence.tokens[current.origin]?.isAnnotation !== !!sentence.tokens[index]?.isAnnotation) return;
     useSelectionStore.getState().setSelection({ ...current,
       start: Math.min(current.origin, index), end: Math.max(current.origin, index),
       cursor: index, blockStart: index, blockEnd: index });
@@ -89,6 +91,7 @@ export function TokenList({ sentence, textareaRef, isActive = true }: TokenListP
   const selectedRange = local ?? { start: sentence.activeTokenIndex, end: sentence.activeTokenIndex };
   const renderToken = (index: number) => {
     const token = sentence.tokens[index];
+    if (token.isAnnotation && token.isMarkup) return null;
     const selected = isActive && (local ? index >= local.start && index <= local.end : index === sentence.activeTokenIndex);
     return <TokenItem key={token.id} token={token} index={index} selected={selected}
       onPointerDown={event => down(event, index)} onPointerEnter={event => enter(event, index)} />;
@@ -98,8 +101,15 @@ export function TokenList({ sentence, textareaRef, isActive = true }: TokenListP
     <div ref={sourceRef} data-source-text data-source-sentence={sentence.id} className="source-flow" aria-label="原文选词区"
       style={{ '--selection-scale': SELECTION_SCALE, '--selection-lift': `-${SELECTION_LIFT}px` } as React.CSSProperties}>
       <SelectionSurface container={sourceRef} sentence={sentence} selection={local} selected={isActive ? selectedRange : { start: -1, end: -1 }} isActive={isActive} />
-      {sentence.tokens.map((_, index) => renderToken(index))}
+      {sentence.tokens.map((token, index) => !token.isAnnotation && renderToken(index))}
     </div>
+    {sentence.tokens.some(t => t.isAnnotation && !t.isMarkup && !t.isWhitespace) &&
+      <div ref={noteRef} data-source-text data-source-sentence={sentence.id} data-source-region="annotation"
+        className="source-flow source-annotation" aria-label="注释选词区"
+        style={{ '--selection-scale': SELECTION_SCALE, '--selection-lift': `-${SELECTION_LIFT}px` } as React.CSSProperties}>
+        <SelectionSurface container={noteRef} sentence={sentence} selection={local} selected={isActive ? selectedRange : { start: -1, end: -1 }} isActive={isActive} />
+        {sentence.tokens.map((token, index) => token.isAnnotation && renderToken(index))}
+      </div>}
   </div>;
 }
 

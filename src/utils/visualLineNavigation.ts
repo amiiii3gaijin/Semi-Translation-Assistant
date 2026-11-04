@@ -14,18 +14,25 @@ export function createVisualLineNavigator() {
   let memory: { sentence: string; layout: string; index: number; row: number; x: number } | null = null;
   const reset = () => { memory = null; };
   const move = (sentence: Sentence, direction: -1 | 1): number | null => {
-    const flow = Array.from(document.querySelectorAll<HTMLElement>('[data-source-sentence]'))
-      .find(element => element.dataset.sourceSentence === sentence.id);
+    const flows = Array.from(document.querySelectorAll<HTMLElement>('[data-source-sentence]'))
+      .filter(element => element.dataset.sourceSentence === sentence.id);
+    const flow = flows[0];
     if (!flow) return null;
     const lineHeight = parseFloat(getComputedStyle(flow).lineHeight) || 50;
     const boxes: WordBox[] = [];
-    flow.querySelectorAll<HTMLElement>('[data-source-token]').forEach(node => {
+    for (const region of flows) region.querySelectorAll<HTMLElement>('[data-source-token]').forEach(node => {
       const index = Number(node.dataset.sourceToken);
       const token = sentence.tokens[index];
       if (!isNavigableToken(token) || node.dataset.sourceSpace === 'true'
         || !node.offsetWidth || !node.offsetHeight) return;
-      boxes.push({ index, node, x: node.offsetLeft + node.offsetWidth / 2,
-        y: node.offsetTop + node.offsetHeight / 2, height: node.offsetHeight });
+      let x = node.offsetLeft + node.offsetWidth / 2, y = node.offsetTop + node.offsetHeight / 2;
+      // Both regions have their own positioned flow; compare in a shared card coordinate space.
+      let parent = node.offsetParent as HTMLElement | null;
+      while (parent && parent !== region.parentElement) {
+        x += parent.offsetLeft; y += parent.offsetTop;
+        parent = parent.offsetParent as HTMLElement | null;
+      }
+      boxes.push({ index, node, x, y, height: node.offsetHeight });
     });
     boxes.sort((a, b) => a.y - b.y || a.x - b.x);
     const rows: { y: number; words: WordBox[] }[] = [];

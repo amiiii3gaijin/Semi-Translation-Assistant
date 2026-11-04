@@ -9,10 +9,12 @@ export function needsWordSpace(left: string, right: string): boolean {
 }
 
 export function captureText(sentence: Sentence, start: number, end: number): string {
+  if (!!sentence.tokens[start]?.isAnnotation !== !!sentence.tokens[end]?.isAnnotation) return '';
   if (!usePreferencesStore.getState().spaceCapturedWords) return sourceText(sentence, start, end);
   const tokens = sentence.tokens.slice(Math.min(start, end), Math.max(start, end) + 1);
   let result = '';
   for (const token of tokens) {
+    if (token.isAnnotation && token.isMarkup) continue;
     if (needsWordSpace(result, token.text)) result += ' ';
     result += token.text;
   }

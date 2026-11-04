@@ -2,7 +2,7 @@ import { commandCode, ALT_PAD } from '../utils/keyboardCommands';
 import React, { useEffect } from 'react';
 import { useDocumentStore } from '../store/useDocumentStore';
 import { useSelectionStore } from '../store/useSelectionStore';
-import { expandSelection, moveSelection, moveGroupedSelection, nextWord, shrinkSelection, singleSelection } from '../utils/sourceSelection';
+import { expandSelection, moveSelection, moveGroupedSelection, nextWord, shrinkSelection, singleSelection, regionLastWord } from '../utils/sourceSelection';
 import { insertSourceText, TranslationTarget } from '../utils/insertSourceText';
 import { captureText } from '../utils/captureText';
 import { createVisualLineNavigator } from '../utils/visualLineNavigation';
@@ -15,9 +15,6 @@ export function useKeyboardShortcuts(textareaRef: React.RefObject<HTMLTextAreaEl
     let fiveHeld = false;
     let rightAlt = false;
     let captureKey: string | null = null;
-    let pageTimer: ReturnType<typeof setInterval> | undefined;
-    let pageDelay: ReturnType<typeof setTimeout> | undefined;
-    const stopPaging = () => { clearInterval(pageTimer); clearTimeout(pageDelay); pageTimer = undefined; pageDelay = undefined; };
     let cancelled = false;
     let lastPageStep = 0;
     let target: TranslationTarget | undefined;
@@ -39,14 +36,13 @@ export function useKeyboardShortcuts(textareaRef: React.RefObject<HTMLTextAreaEl
       const code = commandCode(e.code, rightAlt);
       if (code === 'F9' && e.ctrlKey && e.altKey && e.shiftKey && !e.metaKey) return;
       if ((e.target as HTMLElement | null)?.closest('[data-ribbon-dev]')) return;
-      if (!allowed(e)) { rightAlt = false; stopPaging(); cancel(); return; }
+      if (!allowed(e)) { rightAlt = false; cancel(); return; }
       if (e.code === 'AltRight' && !e.isComposing && allowed(e)) {
         rightAlt = true; e.preventDefault(); e.stopPropagation(); return;
       }
       const layerCommand = rightAlt && !!ALT_PAD[e.code];
-      if (layerCommand && e.code !== 'ControlRight' && e.code !== 'ShiftRight') stopPaging();
       if (e.isComposing || e.metaKey || (!layerCommand && (e.ctrlKey || e.altKey || e.shiftKey)) || !allowed(e)) {
-        if (e.isComposing) rightAlt = false; stopPaging();
+        if (e.isComposing) rightAlt = false;
         cancel();
         return;
       }
@@ -56,9 +52,8 @@ export function useKeyboardShortcuts(textareaRef: React.RefObject<HTMLTextAreaEl
       if (code === 'Numpad8' || code === 'Numpad2') {
         e.preventDefault();
         e.stopPropagation();
-        // Standalone only: do not change held, mouse or preview selections.
-        const activeSelection = useSelectionStore.getState().selection;
-        if (fiveHeld || (activeSelection && !activeSelection.automatic)) return;
+        // Vertical navigation is the only keyboard route across source regions.
+        if (fiveHeld || useSelectionStore.getState().selection?.mode === 'mouse') return;
         const next = vertical.move(sentence, code === 'Numpad8' ? -1 : 1);
         if (next !== null) {
           select(null);
@@ -68,20 +63,6 @@ export function useKeyboardShortcuts(textareaRef: React.RefObject<HTMLTextAreaEl
         return;
       }
       vertical.reset();
-      if (rightAlt && (e.code === 'ControlRight' || e.code === 'ShiftRight')) {
-        e.preventDefault(); e.stopPropagation();
-        if (e.repeat || pageTimer || pageDelay) return;
-        cancel();
-        const step = () => {
-          if (!rightAlt || !allowed({target: document.activeElement})) { stopPaging(); return; }
-          if (code === 'PageUp') useDocumentStore.getState().prevSentence();
-          else useDocumentStore.getState().nextSentence();
-          requestAnimationFrame(() => textareaRef.current?.focus({ preventScroll: true }));
-        };
-        step();
-        pageDelay = setTimeout(() => { pageDelay = undefined; if (!rightAlt || !allowed({target: document.activeElement})) return; step(); pageTimer = setInterval(step, 130); }, 350);
-        return;
-      }
       if (['PageUp', 'PageDown', 'NumpadAdd', 'NumpadEnter'].includes(code)) {
         e.preventDefault();
         e.stopPropagation();
@@ -113,10 +94,11 @@ export function useKeyboardShortcuts(textareaRef: React.RefObject<HTMLTextAreaEl
       if (e.repeat && code !== 'Numpad4' && code !== 'Numpad6') return;
       if (code === 'Numpad3') {
         cancel();
-        const last = nextWord(sentence.tokens, sentence.tokens.length, -1);
+        const last = regionLastWord(sentence);
         if (last !== null) {
           useSelectionStore.getState().setEntry({ sentenceId: sentence.id, index: last });
-          useSelectionStore.getState().setFineRange({ sentenceId: sentence.id, start: last, end: last });
+          // A jump is a new entry, not an explicit request to break a default group.
+          useSelectionStore.getState().setFineRange(null);
           store.setActiveTokenIndex(sentence.id, last);
         }
         return;
@@ -135,7 +117,7 @@ export function useKeyboardShortcuts(textareaRef: React.RefObject<HTMLTextAreaEl
         target = { start: textarea.selectionStart, end: textarea.selectionEnd, value: textarea.value };
         const preview = effectiveSelection(sentence);
         const index = !isNavigableToken(sentence.tokens[sentence.activeTokenIndex])
-          ? nextWord(sentence.tokens, -1, 1) : sentence.activeTokenIndex;
+          ? nextWord(sentence.tokens, sentence.activeTokenIndex, 1) ?? nextWord(sentence.tokens, sentence.activeTokenIndex, -1) : sentence.activeTokenIndex;
         if (index === null || index === undefined) { cancel(); return; }
         select(preview?.sentenceId === sentence.id && preview.mode === 'preview'
           ? { ...preview, mode: 'keyboard' } : singleSelection(sentence, index, 'keyboard'));
@@ -177,9 +159,8 @@ export function useKeyboardShortcuts(textareaRef: React.RefObject<HTMLTextAreaEl
       }
     };
     const handleKeyUp = (e: KeyboardEvent) => {
-      if (e.code === 'ControlRight' || e.code === 'ShiftRight') stopPaging();
       if (e.code === 'AltRight') {
-        const wasLayer = rightAlt; rightAlt = false; stopPaging();
+        const wasLayer = rightAlt; rightAlt = false;
         if (wasLayer) {
           e.preventDefault();
           if (fiveHeld) cancel();
@@ -203,14 +184,14 @@ export function useKeyboardShortcuts(textareaRef: React.RefObject<HTMLTextAreaEl
       cancelled = false;
       select(null);
     };
-    const onBlur = () => { rightAlt = false; stopPaging(); cancel(); fiveHeld = false; captureKey = null; };
+    const onBlur = () => { rightAlt = false; cancel(); fiveHeld = false; captureKey = null; };
     const onVisibility = () => { if (document.hidden) onBlur(); };
     const onPointerDown = (event: PointerEvent) => {
       if ((event.target as HTMLElement | null)?.closest('[data-ribbon-dev]') && !fiveHeld) return;
-      stopPaging(); cancel();
+      cancel();
     };
     const unsubscribe = useDocumentStore.subscribe((state, previous) => {
-      if (state.documentId !== previous.documentId) { rightAlt = false; stopPaging(); }
+      if (state.documentId !== previous.documentId) { rightAlt = false; }
       if (state.documentId !== previous.documentId || state.currentActiveIndex !== previous.currentActiveIndex) {
         useSelectionStore.getState().setEntry(null);
         useSelectionStore.getState().setFineRange(null); cancel();
@@ -233,7 +214,6 @@ export function useKeyboardShortcuts(textareaRef: React.RefObject<HTMLTextAreaEl
     window.addEventListener('compositionstart', onBlur, true);
     document.addEventListener('visibilitychange', onVisibility);
     return () => {
-      stopPaging();
       unsubscribe();
       unsubscribePreferences();
       select(null);

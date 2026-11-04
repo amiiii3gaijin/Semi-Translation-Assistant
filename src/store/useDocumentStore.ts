@@ -168,6 +168,7 @@ export const useDocumentStore = create<DocumentStore>((set, get) => ({
         currentActiveIndex: nextIndex,
         sentences: state.sentences.map((s, i) => ({
           ...s,
+          activeTokenIndex: i === nextIndex && s.tokens[s.activeTokenIndex]?.isAnnotation ? Math.max(0, s.tokens.findIndex(t => !t.isAnnotation && isNavigableToken(t))) : s.activeTokenIndex,
           status: i === nextIndex ? 'active' : (s.translatedText.trim() ? 'completed' : 'pending')
         }))
       };
@@ -184,6 +185,7 @@ export const useDocumentStore = create<DocumentStore>((set, get) => ({
         currentActiveIndex: prevIndex,
         sentences: state.sentences.map((s, i) => ({
           ...s,
+          activeTokenIndex: i === prevIndex && s.tokens[s.activeTokenIndex]?.isAnnotation ? Math.max(0, s.tokens.findIndex(t => !t.isAnnotation && isNavigableToken(t))) : s.activeTokenIndex,
           status: i === prevIndex ? 'active' : s.status
         }))
       };

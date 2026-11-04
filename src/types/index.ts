@@ -1,4 +1,5 @@
 export interface Token {
+  isAnnotation?: boolean; // Separate selection region; never contributes phrase groups.
   start: number; // UTF-16 offsets into originalText; end is exclusive.
   end: number;
   isWhitespace?: boolean;

@@ -7,19 +7,24 @@ import { buildTokenGroups } from './tokenGroups';
 import { isNavigableToken } from './tokenNavigation';
 import { attachConsistencyTerms } from './consistencyTerms';
 import { frequentPhrases } from './frequentPhrases';
+import { annotationLayout } from './annotations';
+import { attachAnnotationTokens } from './annotationTokens';
 
 export interface SourceRow { id: string; text: string }
-export interface Preparation { version: 2; key: string; source: string; requirements: string; rows: SourceRow[]; boundaryHints?: { id: string; text: string; parts: string[] }[]; frequent: { text: string; count: number }[] }
+export interface Preparation { version: 2; key: string; source: string; originalSource?: string; sourceRows?: string[]; requirements: string; rows: SourceRow[]; boundaryHints?: { id: string; text: string; parts: string[] }[]; frequent: { text: string; count: number }[] }
 export interface Phrase { text: string; occurrence: number; autoSelect?: boolean }
 export interface Correction extends Phrase { parts: string[] }
 export interface RowResult { id: string; groups: Phrase[]; splits: Correction[]; exclude: Phrase[] }
 export interface AssistedResult { version: 2 | 3; document: string; complete: true; terms: string[]; suggestions: string[]; consistency?: string[]; exceptions: RowResult[] }
 
 export async function prepareImport(source: string, requirements: string): Promise<Preparation> {
+  const originalSource = source;
+  const sourceRows = splitTextIntoSentences(source);
+  const rows = sourceRows.map((text, i) => ({ id: `s${i + 1}`, text: annotationLayout(text).body }));
+  source = rows.map(r => r.text).join('');
   const bytes = new TextEncoder().encode(JSON.stringify([source, requirements, 2, PARSER_VERSION]));
   const hash = await crypto.subtle.digest('SHA-256', bytes);
   const key = Array.from(new Uint8Array(hash), n => n.toString(16).padStart(2, '0')).join('');
-  const rows = splitTextIntoSentences(source).map((text, i) => ({ id: `s${i + 1}`, text }));
   const frequent = await frequentPhrases(source, rows);
   const boundaryHints: NonNullable<Preparation['boundaryHints']> = [];
   const seen = new Set<string>();
@@ -61,7 +66,7 @@ export async function prepareImport(source: string, requirements: string): Promi
       if (hintCharacters + cost <= 1200) { boundaryHints.push(hint); hintCharacters += cost; }
     }
   }
-  return { version: 2, key, source, requirements, rows, frequent, boundaryHints };
+  return { version: 2, key, source, originalSource, sourceRows, requirements, rows, frequent, boundaryHints };
 }
 
 export function makePrompt(prep: Preparation): string {
@@ -76,6 +81,7 @@ export function makePrompt(prep: Preparation): string {
 - 保留组内细词，只修明显坏边界。引用、公式、单位和原始空格由程序保护，不必逐个登记。简单单词无需重复列出。
 - 高频参考可能有噪声；阅读全文，检查是否漏了短动作、状态、修饰部分。不凑数量，不枚举整句，不解释理由。
 默认范围应能直接嵌入用户自己组织的英文。若内部常需插入英文连接或调整语序，保留紧凑动作或描述，把整条关系降为候选。例如“分阶段适应宿主”优先考虑“适应宿主”和独立的“分阶段”；“带毒却不发病”保留“带毒”“不发病”，整条转折只作候选。“用抽象概率表达的风险”应考虑描述“用抽象概率表达的”的独立用途。不要机械删除所有“的”或否定词。
+先找表达核心，再判断外围关系是否由用户自己写：如“是否可信”优先保留“可信”，“需要谨慎”优先保留“谨慎”；“进入冲突地区的能力”优先考虑“进入冲突地区”，完整对象可作较大候选。不要拆掉“无法预知”“不发病”中改变含义的否定。不要漏掉“没有工具时”这样的条件、“推动配合”“明显升高”这样的短动作，以及“本地社区成员执行的”这样的独立描述。简单词原本已能单独选中则不用重复登记。上述例子仅解释选择尺度，原文没有就不输出。
 减少冗余不等于减少有用候选：检查是否漏了完整短动作、时间条件或修饰表达。不要用整句候选替代这些短范围。“学科名称＋说明”这样的普通主谓组合不宜成组。
 只返回一个标记为 json 的代码块，代码块外不写任何内容，全部字段放在同一个代码块中：
 {"version":3,"document":"${prep.key}","complete":true,"terms":[],"suggestions":[],"consistency":[],"exceptions":[]}
@@ -263,5 +269,8 @@ export async function buildAssistedSentences(prep: Preparation, result: Assisted
   }
   if (sentences.map(s => s.originalText).join('') !== prep.source) throw new Error('原文完整性校验失败。');
   attachConsistencyTerms(sentences, validated.consistency ?? []);
-  return sentences;
+  return sentences.map((sentence, i) => {
+    const source = prep.sourceRows?.[i] ?? sentence.originalText;
+    return { ...attachAnnotationTokens(source, sentence.id, sentence), originalText: source };
+  });
 }

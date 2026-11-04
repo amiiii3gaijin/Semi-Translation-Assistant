@@ -3,6 +3,7 @@ import { nextWord } from './sourceSelection';
 import { needsWordSpace } from './captureText';
 import { usePreferencesStore } from '../store/usePreferencesStore';
 import { useSelectionStore } from '../store/useSelectionStore';
+import { isNavigableToken } from './tokenNavigation';
 
 export interface TranslationTarget { start: number; end: number; value: string }
 
@@ -38,7 +39,7 @@ export function insertSourceText(sentenceId: string, text: string, sourceEnd: nu
   });
   const advance = usePreferencesStore.getState().autoAdvanceAfterCapture;
   const next = advance ? nextWord(sentence.tokens, sourceEnd, 1) : null;
-  const landing = next ?? nextWord(sentence.tokens, sourceEnd + 1, -1) ?? 0;
+  const landing = next ?? (isNavigableToken(sentence.tokens[sourceEnd]) ? sourceEnd : nextWord(sentence.tokens, sourceEnd, -1)) ?? sourceEnd;
   store.setActiveTokenIndex(sentenceId, landing);
   useSelectionStore.getState().setEntry({ sentenceId, index: landing });
   useSelectionStore.getState().setFineRange(next === null ? { sentenceId, start: landing, end: landing } : null);

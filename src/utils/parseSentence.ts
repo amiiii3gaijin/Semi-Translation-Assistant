@@ -2,9 +2,16 @@ import { tokenize, type TokenTrace } from './tokenizer';
 import { buildTokenGroups, type GroupTrace } from './tokenGroups';
 import { createParserContext, type ParserContext } from './documentTerms';
 import type { Token, TokenGroup } from '../types';
+import { annotationLayout } from './annotations';
+import { attachAnnotationTokens } from './annotationTokens';
 
 /** The workbench and lab use exactly the same parsing pipeline. */
-export function parseSentence(source: string, id: string, observe?: (trace: GroupTrace) => void, observeToken?: (trace: TokenTrace) => void, context: ParserContext = createParserContext(source), sourceOffset = 0) {
+export function parseSentence(source: string, id: string, observe?: (trace: GroupTrace) => void, observeToken?: (trace: TokenTrace) => void, context: ParserContext = createParserContext(source), sourceOffset = 0): { tokens: Token[]; groups: TokenGroup[]; pairedGroups: TokenGroup[] } {
+  const annotation = annotationLayout(source);
+  if (annotation.spans.length) {
+    const body = parseSentence(annotation.body, id, observe, observeToken, context, sourceOffset);
+    return attachAnnotationTokens(source, id, body);
+  }
   if (context.blocks.some(b => b.start < sourceOffset + source.length && b.end > sourceOffset) || /[┌┐└┘├┤┬┴┼│─]/u.test(source)) {
     const tokens: Token[] = source ? [{ id: `${id}_0`, start: 0, end: source.length, text: source, pos: 'unk', isPunctuation: false, isVerbatim: true }] : [];
     if (source) observeToken?.({ start: 0, end: source.length, origin: 'protected-run' });
