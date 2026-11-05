@@ -27,9 +27,8 @@
   --ui-shadow-modal: 0 24px 64px rgba(0, 0, 0, 0.14);
   --ui-shadow-blue: 0 10px 15px -3px color-mix(in srgb, var(--ui-blue) 30%, transparent), 0 4px 6px -4px color-mix(in srgb, var(--ui-blue) 22%, transparent);
   --ui-shadow-blue-hover: 0 12px 24px -4px color-mix(in srgb, var(--ui-blue) 34%, transparent);
-  --ui-cursor-ink: var(--color-blue-800, #1e40af);
-  /* Same layer shape as the solid cursor (inset ring + two drops) so the switch interpolates. */
-  --ui-shadow-cursor-idle: inset 0 0 0 1.5px color-mix(in srgb, var(--ui-blue) 85%, white), 0 8px 16px -6px color-mix(in srgb, var(--ui-blue) 42%, transparent), 0 2px 12px 0 color-mix(in srgb, var(--ui-blue) 14%, transparent);
+  /* The surface-button material at word scale; two layers like --ui-shadow-blue so the switch interpolates. */
+  --ui-shadow-cursor-idle: 0 1px 3px rgba(0, 0, 0, 0.09), 0 4px 14px rgba(0, 0, 0, 0.06);
   --ui-candidate: rgba(107, 114, 128, 0.38);
   --ui-duration-quick: 150ms;
   --ui-duration-control: 180ms;
@@ -267,9 +266,11 @@ button:disabled { cursor: default; }
 .release-info summary { cursor: pointer; text-align: center; }
 .release-info section { margin-top: 18px; }
 .release-info ul { padding-left: 20px; list-style: disc; }
-/* Typing mode parks the cursor as a hollow glowing frame; capture mode floods it solid. */
+/* Typing mode rests the cursor as a white surface key; capture mode lights it blue like a primary button
+   and the word lifts into it. No third material: the cursor speaks the same language as the toolbar. */
 .source-flow { --ui-cursor-text: white; }
-[data-capture-active="false"] .source-flow { --ui-cursor-text: var(--ui-cursor-ink); }
+[data-capture-active="false"] .source-flow { --ui-cursor-text: currentColor; }
+[data-capture-active="false"] .source-token-selected { transform: none; }
 [data-capture-active="false"] .source-selection-surface { background: white; box-shadow: var(--ui-shadow-cursor-idle); }
 .translation-input[data-capture-active="true"] { caret-color: color-mix(in srgb, var(--ui-blue) 45%, white); }
 .source-selection-surface { transition: background-color 140ms ease, box-shadow 140ms ease; }
@@ -290,7 +291,7 @@ button:disabled { cursor: default; }
 .preference-toggle input::after { content: ''; position: absolute; left: 3px; top: 3px; width: 14px; height: 14px; border-radius: 50%; background: white; box-shadow: 0 1px 3px rgba(0,0,0,.12); transition: transform var(--ui-duration-control) var(--ui-ease); }
 .preference-toggle input:checked { background: var(--ui-blue); }
 .preference-toggle input:checked::after { transform: translateX(14px); }
-.source-selection-surface { position: absolute; border-radius: var(--ui-radius-word); background: var(--ui-blue); box-shadow: inset 0 0 0 1.5px var(--ui-blue), var(--ui-shadow-blue); transform-origin: center; }
+.source-selection-surface { position: absolute; border-radius: var(--ui-radius-word); background: var(--ui-blue); box-shadow: var(--ui-shadow-blue); transform-origin: center; }
 
 @media (min-width: 761px) and (max-width: 1100px) {
   .progress-metric { flex-direction: column; align-items: center; gap: 0; }
