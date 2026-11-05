@@ -1,5 +1,7 @@
 import React, { useEffect, RefObject } from 'react';
 import { useDocumentStore } from '../../store/useDocumentStore';
+import { useCaptureModeStore } from '../../store/useCaptureModeStore';
+import { useSelectionStore } from '../../store/useSelectionStore';
 
 interface TranslationAreaProps {
   sentenceId: string;
@@ -13,6 +15,9 @@ export function TranslationArea({ sentenceId, initialText, isActive, textareaRef
   const markCurrentSentenceCompleted = useDocumentStore((state) => state.markCurrentSentenceCompleted);
   const nextSentence = useDocumentStore((state) => state.nextSentence);
   const translationFontSize = useDocumentStore((state) => state.translationFontSize);
+  // Mirrors TokenList's data-capture-active so only one cursor looks live at a time.
+  const capturing = useCaptureModeStore(state => state.active);
+  const selecting = useSelectionStore(state => state.selection?.sentenceId === sentenceId && state.selection.mode !== 'preview');
 
   useEffect(() => {
       if (isActive && textareaRef?.current) {
@@ -50,6 +55,7 @@ export function TranslationArea({ sentenceId, initialText, isActive, textareaRef
             <textarea
                 ref={textareaRef}
                 data-sentence-id={sentenceId}
+                data-capture-active={isActive && (capturing || selecting)}
                 aria-label="当前句子的译文"
                 value={initialText}
                 onChange={handleChange}

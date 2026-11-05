@@ -77,7 +77,8 @@ export function SelectionSurface({ container, sentence, selected, selection, isA
   const showPhraseMarkers = usePreferencesStore(state => state.showPhraseMarkers);
   const highlight = usePreferencesStore(state => state.highlightConsistency);
   const autoGroups = usePreferencesStore(state => state.autoSelectGroups);
-  // White text follows the actual moving surface, never an anticipated target.
+  // Covered text follows the actual moving surface, never an anticipated target.
+  // Its colour comes from CSS so a mode switch recolours it without a re-measure.
   const syncTextColor = () => {
     const element = container.current;
     if (!element) return;
@@ -91,7 +92,7 @@ export function SelectionSurface({ container, sentence, selected, selection, isA
         x + slot.offsetWidth * 0.45 <= surface.offsetLeft + surface.offsetWidth &&
         y - slot.offsetHeight * 0.3 >= surface.offsetTop &&
         y + slot.offsetHeight * 0.3 <= surface.offsetTop + surface.offsetHeight);
-      const color = covered ? 'white' : '';
+      const color = covered ? 'var(--ui-cursor-text)' : '';
       if (face.style.color !== color) face.style.color = color;
     });
   };
