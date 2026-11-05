@@ -28,7 +28,7 @@
   --ui-shadow-blue: 0 10px 15px -3px color-mix(in srgb, var(--ui-blue) 30%, transparent), 0 4px 6px -4px color-mix(in srgb, var(--ui-blue) 22%, transparent);
   --ui-shadow-blue-hover: 0 12px 24px -4px color-mix(in srgb, var(--ui-blue) 34%, transparent);
   /* The surface-button material at word scale; two layers like --ui-shadow-blue so the switch interpolates. */
-  --ui-shadow-cursor-idle: 0 1px 3px rgba(0, 0, 0, 0.09), 0 4px 14px rgba(0, 0, 0, 0.06);
+  --ui-shadow-cursor-idle: 0 2px 5px rgba(0, 0, 0, 0.13), 0 7px 18px rgba(0, 0, 0, 0.11);
   --ui-candidate: rgba(107, 114, 128, 0.38);
   --ui-duration-quick: 150ms;
   --ui-duration-control: 180ms;
@@ -266,11 +266,11 @@ button:disabled { cursor: default; }
 .release-info summary { cursor: pointer; text-align: center; }
 .release-info section { margin-top: 18px; }
 .release-info ul { padding-left: 20px; list-style: disc; }
-/* Typing mode rests the cursor as a white surface key; capture mode lights it blue like a primary button
-   and the word lifts into it. No third material: the cursor speaks the same language as the toolbar. */
+/* Typing mode rests the cursor as a white surface key; capture mode lights it blue like a primary button.
+   The word stays magnified in both modes, so the switch only changes colour and the cursor is easy to find.
+   No third material: the cursor speaks the same language as the toolbar. */
 .source-flow { --ui-cursor-text: white; }
 [data-capture-active="false"] .source-flow { --ui-cursor-text: currentColor; }
-[data-capture-active="false"] .source-token-selected { transform: none; }
 [data-capture-active="false"] .source-selection-surface { background: white; box-shadow: var(--ui-shadow-cursor-idle); }
 .translation-input[data-capture-active="true"] { caret-color: color-mix(in srgb, var(--ui-blue) 45%, white); }
 .source-selection-surface { transition: background-color 140ms ease, box-shadow 140ms ease; }
