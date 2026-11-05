@@ -1,0 +1,12 @@
+node_modules/
+.npm-cache/
+build/
+dist/
+coverage/
+.DS_Store
+*.log
+.env*
+!.env.example
+
+# Local documentation, manual checks and development helpers.
+/local-only/

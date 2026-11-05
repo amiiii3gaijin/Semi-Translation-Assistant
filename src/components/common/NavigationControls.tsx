@@ -1,0 +1,192 @@
+import { useEffect, useRef, useState } from 'react';
+import { AnimatePresence, motion } from 'motion/react';
+import { ChevronDown, ChevronUp, Copy, Download, Info, X } from 'lucide-react';
+import { useDocumentStore } from '../../store/useDocumentStore';
+import { useUIStore } from '../../store/useUIStore';
+import { exportToTXT, translationText } from '../../utils/fileExporter';
+import { copyToClipboard } from '../../utils/clipboard';
+import { Button } from './Button';
+import { ExitDialog } from './ExitDialog';
+import { UI_MOTION } from '../../design/motion';
+import { usePreferencesStore } from '../../store/usePreferencesStore';
+
+const shortcuts = [
+  ['前后切句（可长按）', 'PgUp / PgDn'],
+  ['上一句', '小键盘 +'],
+  ['逐词移动 / 调整选区', '4 / 6'],
+  ['上移一行 / 下移一行', '8 / 2'],
+  ['扩成词组 / 收回', '7 / 9'],
+  ['按下选择，松开插入', '5'],
+  ['跳到当前区域末尾', '3'],
+  ['取消预选 / 本次抓取', '1'],
+  ['完成并切到下一句', 'Enter'],
+  ['换行', 'Shift + Enter'],
+  ['导出并复制', 'F2'],
+];
+
+export function NavigationControls() {
+  const nextSentence = useDocumentStore(state => state.nextSentence);
+  const prevSentence = useDocumentStore(state => state.prevSentence);
+  const clearDocument = useDocumentStore(state => state.clearDocument);
+  const currentIndex = useDocumentStore(state => state.currentActiveIndex);
+  const total = useDocumentStore(state => state.totalSentences);
+  const originalFontSize = useDocumentStore(state => state.originalFontSize);
+  const translationFontSize = useDocumentStore(state => state.translationFontSize);
+  const setOriginalFontSize = useDocumentStore(state => state.setOriginalFontSize);
+  const setTranslationFontSize = useDocumentStore(state => state.setTranslationFontSize);
+  const [showShortcuts, setShowShortcuts] = useState(false);
+  const autoSelectGroups = usePreferencesStore(state => state.autoSelectGroups);
+  const autoAdvanceAfterCapture = usePreferencesStore(state => state.autoAdvanceAfterCapture);
+  const { spaceCapturedWords, showPhraseMarkers, setSpaceCapturedWords, setShowPhraseMarkers } = usePreferencesStore();
+  const [showExitConfirm, setShowExitConfirm] = useState(false);
+  const helpDock = useRef<HTMLDivElement>(null);
+  const helpButton = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => {
+    if (!showShortcuts) return;
+    const outside = (event: PointerEvent) => {
+      if (!helpDock.current?.contains(event.target as Node)) setShowShortcuts(false);
+    };
+    const key = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setShowShortcuts(false);
+        helpButton.current?.focus({ preventScroll: true });
+      }
+    };
+    document.addEventListener('pointerdown', outside);
+    document.addEventListener('keydown', key);
+    return () => {
+      document.removeEventListener('pointerdown', outside);
+      document.removeEventListener('keydown', key);
+    };
+  }, [showShortcuts]);
+
+  return <>
+    {showExitConfirm && <ExitDialog onClose={() => setShowExitConfirm(false)} onConfirm={async () => {
+      await clearDocument();
+      setShowExitConfirm(false);
+    }} />}
+    <div className="toolbar-left">
+      <Button aria-label="退出工作区" title="退出工作区" onClick={() => { setShowShortcuts(false); setShowExitConfirm(true); }}>
+        <X className="ui-icon" aria-hidden="true" /><span className="toolbar-label">退出工作区</span>
+      </Button>
+    </div>
+    <div className="toolbar-right">
+      <Button aria-label="复制成果" title="复制成果" onClick={async () => {
+        const success = await copyToClipboard(translationText(useDocumentStore.getState()));
+        useUIStore.getState().showToast(success ? '已复制全部译文。' : '复制失败，请重试。');
+      }}><Copy className="ui-icon" aria-hidden="true" /><span className="toolbar-label">复制成果</span></Button>
+      <Button aria-label="导出译文" title="导出译文" onClick={() => exportToTXT(useDocumentStore.getState())}>
+        <Download className="ui-icon" aria-hidden="true" /><span className="toolbar-label">一键导出</span>
+      </Button>
+    </div>
+
+    <div ref={helpDock} className="help-dock">
+      <AnimatePresence>
+        {showShortcuts && <motion.section id="workspace-help" aria-labelledby="help-title"
+          className="ui-panel help-panel"
+          initial={{ opacity: 0, y: 8, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }}
+          exit={{ opacity: 0, y: 8, scale: 0.98 }} transition={UI_MOTION.panel}>
+          <div className="help-panel-scroll overflow-y-auto custom-scrollbar"><div className="help-panel-heading">
+            <h2 id="help-title" className="ui-section-title">显示设置</h2>
+            <Button variant="quiet" shape="rounded" aria-label="关闭帮助" onClick={() => {
+              setShowShortcuts(false); helpButton.current?.focus({ preventScroll: true });
+            }}><X className="ui-icon" aria-hidden="true" /></Button>
+          </div>
+          <div className="help-settings">
+            <div>
+              <label className="preference-toggle"><span>突出全文术语</span>
+                <input type="checkbox" role="switch" checked={usePreferencesStore.getState().highlightConsistency}
+                  onChange={event => usePreferencesStore.getState().setHighlightConsistency(event.target.checked)} /></label>
+              <p className="ui-caption help-copy">蓝灰色提示全文重复的核心术语，最多五个。仅新版 LLM 导入提供，不改变选词操作。</p>
+            </div>
+            <div>
+              <span className="help-setting-label">长按 5 连选单位</span>
+              <div className="preference-choices" role="group" aria-label="长按 5 连选单位">
+                {(['word', 'group'] as const).map(value => <Button key={value}
+                  variant={usePreferencesStore.getState().captureUnit === value ? 'primary' : 'surface'}
+                  aria-pressed={usePreferencesStore.getState().captureUnit === value}
+                  onClick={() => usePreferencesStore.getState().setCaptureUnit(value)}>{value === 'word' ? '按词' : '按词组'}</Button>)}
+              </div>
+              <p className="ui-caption help-copy">按词组时整组进入、整组退回；按 9 拆开的词组暂时保持细选。</p>
+            </div>
+            <div>
+              <span className="help-setting-label">进度计算方式</span>
+              <div className="preference-choices" role="group" aria-label="进度计算方式">
+                {(['filled', 'position'] as const).map(value => <Button key={value}
+                  variant={usePreferencesStore.getState().progressMode === value ? 'primary' : 'surface'}
+                  aria-pressed={usePreferencesStore.getState().progressMode === value}
+                  onClick={() => usePreferencesStore.getState().setProgressMode(value)}>{value === 'filled' ? '按填写页数' : '按当前位置'}</Button>)}
+              </div>
+              <p className="ui-caption help-copy">按当前位置允许跳过空页，回翻时进度回退；到达最后一页为 100%，不表示翻译完成。</p>
+            </div>
+            <div>
+              <label className="preference-toggle">
+                <span>抓取后自动步进</span>
+                <input type="checkbox" role="switch" checked={autoAdvanceAfterCapture}
+                  onChange={event => usePreferencesStore.getState().setAutoAdvanceAfterCapture(event.target.checked)} />
+              </label>
+              <p className="ui-caption help-copy">开启后从选区右侧继续；关闭后停在选区最右端。正向、反向抓取都遵守此规则。</p>
+            </div>
+            <label className="preference-toggle">
+              <span>自动整组选词</span>
+              <input type="checkbox" role="switch" checked={autoSelectGroups}
+                onChange={event => usePreferencesStore.getState().setAutoSelectGroups(event.target.checked)} />
+            </label>
+            <label className="preference-toggle">
+              <span>显示词组标记</span>
+              <input type="checkbox" role="switch" checked={showPhraseMarkers}
+                onChange={event => setShowPhraseMarkers(event.target.checked)} />
+            </label>
+            <div>
+              <label className="preference-toggle">
+                <span>抓取时按细词加空格</span>
+                <input type="checkbox" role="switch" checked={spaceCapturedWords}
+                  onChange={event => setSpaceCapturedWords(event.target.checked)} />
+              </label>
+              <p className="ui-caption help-copy">只影响新抓取的内容，保留原有空白与引用格式。</p>
+            </div>
+            <label>
+              <span className="help-setting-label"><span>原文字号</span><span>{originalFontSize}px</span></span>
+              <input className="ui-range" type="range" min="16" max="40" value={originalFontSize}
+                onChange={event => setOriginalFontSize(Number(event.target.value))} />
+            </label>
+            <label>
+              <span className="help-setting-label"><span>译文字号</span><span>{translationFontSize}px</span></span>
+              <input className="ui-range" type="range" min="16" max="40" value={translationFontSize}
+                onChange={event => setTranslationFontSize(Number(event.target.value))} />
+            </label>
+          </div>
+          <div className="help-divider" />
+          <h3 className="ui-section-title">快捷键</h3>
+          <p className="ui-caption help-copy">高级词组线调参：Ctrl + Alt + Shift + F9 打开或关闭。</p>
+          <ul className="shortcut-list">
+            {shortcuts.map(([label, key]) => <li key={key}><span>{label}</span>
+              <kbd className={key === '5' ? 'shortcut-primary' : undefined}>{key}</kbd></li>)}
+          </ul>
+          <p className="ui-caption help-copy">数字键指小键盘。按住右 Alt，QWE / ASD / ZXC 对应 789 / 456 / 123。松开右 Alt 恢复打字。按住 5，用 4/6 连续选词；7 扩展当前块，9 收回。也可先按 7 预选，再点按 5。有注释时，8/2 可上下进入正文或注释，3 跳到当前区域末尾。</p>
+          <p className="ui-caption help-copy">句尾可添加〔注：提示内容〕。注释里的句号不会分卡，也不发送给 LLM；可点选或上下移入后抓取。</p>
+          <p className="ui-caption help-copy">实线表示默认词组，虚线表示可扩展部分。线段间的小点表示同一候选，跨行端点小点表示延续；无关词组之间留空。标线不随光标改变；墨蓝色仅提醒全文术语。7 扩选、9 撤回。</p>
+          <p className="ui-caption help-copy">Page Up / Page Down 可长按连续翻页，松开即停。小键盘 + 返回上一句，Enter 完成并进入下一句，长按均只执行一次；主键盘加号正常输入。</p>
+          <p className="ui-caption help-copy">自动整选后，9 回到进入时的词：从左进入回组首，从右进入回组尾。上下移动或鼠标定位保留落点。7 可逐层扩展，9 逐层收回；离开该组前保持细选。</p>
+          <p className="ui-caption help-copy">8/2 按屏幕实际行上下移动，尽量保持横向位置；按住 5 或手动预选时不换行。括号、引号和运算符可用键盘定位；普通停顿标点跳过，但范围抓取仍保留。3 跳到当前原文句尾。</p>
+          <p className="ui-caption help-copy">翻译进度按已有非空译文的卡片占比统计，不代表审核完成；清空译文会扣除进度。当前页显示正在查看的位置。</p>
+          </div>
+        </motion.section>}
+      </AnimatePresence>
+      <Button ref={helpButton} shape="round" aria-label="显示设置与快捷键" title="显示设置与快捷键"
+        aria-expanded={showShortcuts} aria-controls="workspace-help" onClick={() => setShowShortcuts(value => !value)}>
+        <Info className="ui-icon" aria-hidden="true" />
+      </Button>
+    </div>
+    <nav className="sentence-navigation" aria-label="句子导航">
+      <Button shape="round" aria-label="上一句" title="上一句 · 小键盘 + / PageUp" disabled={currentIndex <= 0} onClick={prevSentence}>
+        <ChevronUp className="ui-icon" aria-hidden="true" />
+      </Button>
+      <Button variant="primary" shape="round" aria-label="下一句" title="下一句 · PageDown" disabled={currentIndex >= total - 1} onClick={nextSentence}>
+        <ChevronDown className="ui-icon" aria-hidden="true" />
+      </Button>
+    </nav>
+  </>;
+}
+

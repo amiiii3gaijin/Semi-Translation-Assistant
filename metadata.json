@@ -1,0 +1,6 @@
+{
+  "name": "Half-Translation Assistant",
+  "description": "An academic writing tool for half-translation to bypass AI detection.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
