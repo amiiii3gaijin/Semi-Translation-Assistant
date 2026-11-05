@@ -9,11 +9,13 @@ import { createVisualLineNavigator } from '../utils/visualLineNavigation';
 import { effectiveSelection, stayFine } from '../utils/automaticSelection';
 import { isNavigableToken } from '../utils/tokenNavigation';
 import { usePreferencesStore } from '../store/usePreferencesStore';
+import { useCaptureModeStore } from '../store/useCaptureModeStore';
 
 export function useKeyboardShortcuts(textareaRef: React.RefObject<HTMLTextAreaElement | null>) {
   useEffect(() => {
     let fiveHeld = false;
-    let rightAlt = false;
+    let altTap = false;
+    const leaveMode = () => useCaptureModeStore.getState().setActive(false);
     let captureKey: string | null = null;
     let cancelled = false;
     let lastPageStep = 0;
@@ -33,18 +35,26 @@ export function useKeyboardShortcuts(textareaRef: React.RefObject<HTMLTextAreaEl
       return !element?.closest('input, textarea, select, [contenteditable="true"], .help-panel');
     };
     const handleKeyDown = (e: KeyboardEvent) => {
-      const code = commandCode(e.code, rightAlt);
+      const mode = useCaptureModeStore.getState().active;
+      const code = commandCode(e.code, mode && !e.altKey && !e.ctrlKey && !e.metaKey && !e.shiftKey);
       if (code === 'F9' && e.ctrlKey && e.altKey && e.shiftKey && !e.metaKey) return;
       if ((e.target as HTMLElement | null)?.closest('[data-ribbon-dev]')) return;
-      if (!allowed(e)) { rightAlt = false; cancel(); return; }
+      if (!allowed(e)) { altTap = false; leaveMode(); cancel(); return; }
       if (e.code === 'AltRight' && !e.isComposing && allowed(e)) {
-        rightAlt = true; e.preventDefault(); e.stopPropagation(); return;
+        if (!e.repeat) altTap = !e.shiftKey && !e.metaKey && !fiveHeld;
+        if (fiveHeld) cancel();
+        e.preventDefault(); e.stopPropagation(); return;
       }
-      const layerCommand = rightAlt && !!ALT_PAD[e.code];
-      if (e.isComposing || e.metaKey || (!layerCommand && (e.ctrlKey || e.altKey || e.shiftKey)) || !allowed(e)) {
-        if (e.isComposing) rightAlt = false;
+      altTap = false;
+      if (e.code === 'Escape') { leaveMode(); cancel(); return; }
+      if (e.isComposing || e.metaKey || e.ctrlKey || e.altKey || e.shiftKey || !allowed(e)) {
+        leaveMode();
         cancel();
         return;
+      }
+      // In capture mode unrelated printable keys must never silently type text.
+      if (mode && !ALT_PAD[e.code] && !e.code.startsWith('Numpad') && e.key?.length === 1) {
+        e.preventDefault(); e.stopPropagation(); return;
       }
       const store = useDocumentStore.getState();
       const sentence = store.sentences[store.currentActiveIndex];
@@ -160,12 +170,11 @@ export function useKeyboardShortcuts(textareaRef: React.RefObject<HTMLTextAreaEl
     };
     const handleKeyUp = (e: KeyboardEvent) => {
       if (e.code === 'AltRight') {
-        const wasLayer = rightAlt; rightAlt = false;
-        if (wasLayer) {
-          e.preventDefault();
-          if (fiveHeld) cancel();
-          fiveHeld = false; captureKey = null;
+        if (altTap && allowed(e) && !e.isComposing) {
+          e.preventDefault(); e.stopPropagation(); cancel();
+          useCaptureModeStore.getState().setActive(!useCaptureModeStore.getState().active);
         }
+        altTap = false;
         return;
       }
       if (e.code !== captureKey || !fiveHeld) return;
@@ -173,7 +182,7 @@ export function useKeyboardShortcuts(textareaRef: React.RefObject<HTMLTextAreaEl
       const selection = useSelectionStore.getState().selection;
       const store = useDocumentStore.getState();
       const sentence = store.sentences[store.currentActiveIndex];
-      const canCommit = !cancelled && !e.isComposing && !e.metaKey && (rightAlt && captureKey === 'KeyS' || !e.ctrlKey && !e.altKey && !e.shiftKey)
+      const canCommit = !cancelled && !e.isComposing && !e.metaKey && !e.ctrlKey && !e.altKey && !e.shiftKey
         && allowed(e) && selection?.mode === 'keyboard' && sentence?.id === selection.sentenceId;
       fiveHeld = false;
       if (canCommit && selection && sentence) {
@@ -184,14 +193,16 @@ export function useKeyboardShortcuts(textareaRef: React.RefObject<HTMLTextAreaEl
       cancelled = false;
       select(null);
     };
-    const onBlur = () => { rightAlt = false; cancel(); fiveHeld = false; captureKey = null; };
+    const onBlur = () => { altTap = false; leaveMode(); cancel(); fiveHeld = false; captureKey = null; };
     const onVisibility = () => { if (document.hidden) onBlur(); };
+    const onFocus = (event: FocusEvent) => { if (!allowed(event)) onBlur(); };
     const onPointerDown = (event: PointerEvent) => {
+      if (event.target === textareaRef.current || !allowed(event)) leaveMode();
       if ((event.target as HTMLElement | null)?.closest('[data-ribbon-dev]') && !fiveHeld) return;
       cancel();
     };
     const unsubscribe = useDocumentStore.subscribe((state, previous) => {
-      if (state.documentId !== previous.documentId) { rightAlt = false; }
+      if (state.documentId !== previous.documentId) { altTap = false; leaveMode(); }
       if (state.documentId !== previous.documentId || state.currentActiveIndex !== previous.currentActiveIndex) {
         useSelectionStore.getState().setEntry(null);
         useSelectionStore.getState().setFineRange(null); cancel();
@@ -212,8 +223,10 @@ export function useKeyboardShortcuts(textareaRef: React.RefObject<HTMLTextAreaEl
     window.addEventListener('blur', onBlur);
     window.addEventListener('pointerdown', onPointerDown, true);
     window.addEventListener('compositionstart', onBlur, true);
+    window.addEventListener('focusin', onFocus, true);
     document.addEventListener('visibilitychange', onVisibility);
     return () => {
+      leaveMode();
       unsubscribe();
       unsubscribePreferences();
       select(null);
@@ -223,6 +236,7 @@ export function useKeyboardShortcuts(textareaRef: React.RefObject<HTMLTextAreaEl
       window.removeEventListener('blur', onBlur);
       window.removeEventListener('pointerdown', onPointerDown, true);
       window.removeEventListener('compositionstart', onBlur, true);
+      window.removeEventListener('focusin', onFocus, true);
       document.removeEventListener('visibilitychange', onVisibility);
     };
   }, [textareaRef]);

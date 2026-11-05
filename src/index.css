@@ -133,7 +133,8 @@ button:disabled { cursor: default; }
 .ui-toast { position: fixed; left: 50%; bottom: 104px; transform: translate(-50%, 8px); z-index: 120; max-width: min(440px, calc(100vw - 32px)); padding: 12px 18px; border-radius: var(--ui-radius-control); background: rgba(31,41,55,0.96); color: white; font-size: 14px; line-height: 1.6; text-align: center; box-shadow: var(--ui-shadow-panel); opacity: 0; pointer-events: none; transition: opacity var(--ui-duration-panel) var(--ui-ease), transform var(--ui-duration-panel) var(--ui-ease); }
 .ui-toast--visible { opacity: 1; transform: translate(-50%, 0); }
 
-.import-screen { height: 100dvh; overflow-y: auto; display: flex; padding: 32px; background: white; }
+.import-screen { height: 100dvh; overflow-y: auto; display: flex; flex-direction: column; padding: 32px; background: white; }
+.import-screen > .import-card, .import-screen > .release-info { flex-shrink: 0; }
 .import-card { width: 100%; max-width: 720px; margin: auto; padding: 36px; background: white; border: 1px solid var(--ui-border); border-radius: var(--ui-radius-card); box-shadow: var(--ui-shadow-card); }
 .import-title { margin: 0 0 24px; text-align: center; font-size: 32px; line-height: 1.25; letter-spacing: -0.025em; font-weight: 700; }
 .import-card--preparation { max-width: 820px; padding: 36px 44px; }
@@ -254,7 +255,19 @@ button:disabled { cursor: default; }
 /* Stable word slots preserve line wrapping and source-offset hit testing.
    Every selected face keeps the same raised state until it leaves the selection. */
 .source-flow { position: relative; isolation: isolate; white-space: break-spaces; overflow-wrap: anywhere; text-align: center; line-height: 2; padding: 8px 0; tab-size: 4; touch-action: pan-y; user-select: none; }
-.source-annotation { margin-top: 1.2em; font-size: max(16px, 0.76em); font-weight: 400; line-height: 1.85; text-align: left; color: #626b78; }
+.source-annotation { margin: 0.8em auto 0; width: fit-content; max-width: min(100%, 42em); font-size: max(16px, 0.76em); font-weight: 400; line-height: 1.85; text-align: left; color: #626b78; }
+.source-annotation .source-token-face { padding-left: 0.04em; padding-right: 0.04em; }
+.release-info { width: min(100%, 880px); margin: 24px auto; padding: 0 24px 24px; font-size: 13px; line-height: 1.8; color: #667085; }
+.release-info > div { display: flex; flex-wrap: wrap; gap: 8px 18px; justify-content: center; }
+.release-status { color: #737b88; font-size: 12px; }
+.release-info details { margin-top: 10px; }
+.release-info summary { cursor: pointer; text-align: center; }
+.release-info section { margin-top: 18px; }
+.release-info ul { padding-left: 20px; list-style: disc; }
+[data-capture-active="false"] .source-selection-surface { background: #e3edff; box-shadow: none; }
+[data-capture-active="false"] .source-token-selected { color: #243f68 !important; }
+.source-selection-surface { transition: background-color 140ms ease, box-shadow 140ms ease; }
+@media (prefers-reduced-motion: reduce) { .source-selection-surface { transition: none; } }
 .source-token-slot { display: inline-block; position: relative; vertical-align: baseline; margin: 0 1px; max-width: 100%; z-index: 1; cursor: pointer; }
 .source-token-face { display: inline-block; padding: 0 4px; border-radius: var(--ui-radius-word); transform-origin: center; transition: transform var(--ui-duration-quick) var(--ui-ease), color var(--ui-duration-quick) var(--ui-ease), background-color var(--ui-duration-quick) var(--ui-ease); }
 .source-token-slot:hover .source-token-face:not(.source-token-selected) { background: rgba(0,0,0,0.04); }

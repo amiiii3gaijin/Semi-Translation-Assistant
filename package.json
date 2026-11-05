@@ -1,7 +1,7 @@
 {
   "name": "react-example",
   "private": true,
-  "version": "0.0.0",
+  "version": "0.2.0",
   "type": "module",
   "scripts": {
     "dev": "vite --port=3000 --host=0.0.0.0",
@@ -11,7 +11,8 @@
     "lint": "tsc --noEmit",
     "tokenizer:report": "tsx scripts/tokenizer-report.ts",
     "tokenizer:check": "tsx scripts/parser-regression.ts",
-    "analyze": "node local-only/fuck-u-code-main/bin/fuck-u-code.js analyze local-only/fuck-u-code-main/src --format markdown > local-only/analyze-result.md"
+    "analyze": "node local-only/fuck-u-code-main/bin/fuck-u-code.js analyze local-only/fuck-u-code-main/src --format markdown > local-only/analyze-result.md",
+    "release:snapshot": "tsx scripts/release-snapshot.ts"
   },
   "dependencies": {
     "@google/genai": "^2.4.0",

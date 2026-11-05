@@ -4,6 +4,7 @@ import { needsWordSpace } from './captureText';
 import { usePreferencesStore } from '../store/usePreferencesStore';
 import { useSelectionStore } from '../store/useSelectionStore';
 import { isNavigableToken } from './tokenNavigation';
+import { useCaptureModeStore } from '../store/useCaptureModeStore';
 
 export interface TranslationTarget { start: number; end: number; value: string }
 
@@ -43,5 +44,6 @@ export function insertSourceText(sentenceId: string, text: string, sourceEnd: nu
   store.setActiveTokenIndex(sentenceId, landing);
   useSelectionStore.getState().setEntry({ sentenceId, index: landing });
   useSelectionStore.getState().setFineRange(next === null ? { sentenceId, start: landing, end: landing } : null);
+  if (usePreferencesStore.getState().returnToTypingAfterCapture) useCaptureModeStore.getState().setActive(false);
   return true;
 }

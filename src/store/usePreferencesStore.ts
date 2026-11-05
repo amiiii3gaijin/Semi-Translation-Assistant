@@ -2,6 +2,8 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
 interface Preferences {
+  returnToTypingAfterCapture: boolean;
+  setReturnToTypingAfterCapture: (value: boolean) => void;
   highlightConsistency: boolean;
   setHighlightConsistency: (value: boolean) => void;
   captureUnit: 'word' | 'group';
@@ -19,6 +21,8 @@ interface Preferences {
 }
 
 export const usePreferencesStore = create<Preferences>()(persist(set => ({
+  returnToTypingAfterCapture: true,
+  setReturnToTypingAfterCapture: returnToTypingAfterCapture => set({ returnToTypingAfterCapture }),
   highlightConsistency: false,
   setHighlightConsistency: highlightConsistency => set({ highlightConsistency }),
   captureUnit: 'group',

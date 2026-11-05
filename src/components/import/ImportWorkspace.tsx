@@ -1,3 +1,4 @@
+import { ReleaseInfo } from '../common/ReleaseInfo';
 import { useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import { ArrowLeft, ArrowRight, Check, Copy, X } from 'lucide-react';
@@ -174,6 +175,7 @@ export function ImportWorkspace() {
       {(notice || saveError) && <p className="import-status ui-caption" role="status" aria-live="polite">{notice || '草稿保存失败，请暂时不要关闭页面。'}</p>}
       {manualCopy && <div className="import-field"><textarea ref={copyField} readOnly value={manualCopy} className="import-textarea custom-scrollbar" aria-label="手动复制任务" /></div>}
     </motion.section>
+    <ReleaseInfo />
     <ToastNotification />
   </main>;
 }

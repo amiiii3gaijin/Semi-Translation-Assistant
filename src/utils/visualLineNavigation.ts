@@ -1,5 +1,7 @@
 import { Sentence } from '../types';
 import { isNavigableToken } from './tokenNavigation';
+import { proportionalRegionTarget } from './regionNavigation';
+import { usePreferencesStore } from '../store/usePreferencesStore';
 
 interface WordBox {
   index: number;
@@ -12,6 +14,7 @@ interface WordBox {
 /** A citation can occupy multiple visual rows while remaining one token. */
 export function createVisualLineNavigator() {
   let memory: { sentence: string; layout: string; index: number; row: number; x: number } | null = null;
+  let returnBody: { sentence: string; index: number } | null = null;
   const reset = () => { memory = null; };
   const move = (sentence: Sentence, direction: -1 | 1): number | null => {
     const flows = Array.from(document.querySelectorAll<HTMLElement>('[data-source-sentence]'))
@@ -52,9 +55,18 @@ export function createVisualLineNavigator() {
     memory = { sentence: sentence.id, layout, row: currentRow, index: sentence.activeTokenIndex, x };
     const nextRow = currentRow + direction;
     if (nextRow < 0 || nextRow >= rows.length) return null;
-    const destination = rows[nextRow].words.reduce((best, box) =>
+    let destination = rows[nextRow].words.reduce((best, box) =>
       Math.abs(box.x - x) < Math.abs(best.x - x) ? box : best);
-    memory = { ...memory, row: nextRow, index: destination.index };
+    const fromNote = !!sentence.tokens[sentence.activeTokenIndex].isAnnotation;
+    const toNote = !!sentence.tokens[destination.index].isAnnotation;
+    if (fromNote !== toNote) {
+      const target = !toNote && returnBody?.sentence === sentence.id
+        ? returnBody.index : proportionalRegionTarget(sentence, toNote, usePreferencesStore.getState().autoSelectGroups);
+      if (toNote) returnBody = { sentence: sentence.id, index: sentence.activeTokenIndex };
+      const mapped = boxes.find(box => box.index === target);
+      if (mapped) destination = mapped;
+    }
+    memory = { ...memory, row: rows.findIndex(row => row.words.includes(destination)), index: destination.index };
 
     // Only the card scrolls. Coordinates ignore ancestor 3D transforms.
     const scroll = flow.closest<HTMLElement>('.sentence-card-scroll');

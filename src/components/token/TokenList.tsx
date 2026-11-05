@@ -10,6 +10,7 @@ import { SELECTION_LIFT, SELECTION_SCALE } from '../../design/motion';
 import { captureText } from '../../utils/captureText';
 import { automaticSelection } from '../../utils/automaticSelection';
 import { usePreferencesStore } from '../../store/usePreferencesStore';
+import { useCaptureModeStore } from '../../store/useCaptureModeStore';
 
 interface TokenListProps {
   sentence: Sentence;
@@ -18,6 +19,7 @@ interface TokenListProps {
 }
 
 export function TokenList({ sentence, textareaRef, isActive = true }: TokenListProps) {
+  const captureMode = useCaptureModeStore(state => state.active);
   const { selection } = useSelectionStore(); // Also rerender when temporary fine-selection changes.
   const autoGroups = usePreferencesStore(state => state.autoSelectGroups);
   const local = selection?.sentenceId === sentence.id ? selection : autoGroups ? automaticSelection(sentence) : null;
@@ -97,7 +99,8 @@ export function TokenList({ sentence, textareaRef, isActive = true }: TokenListP
       onPointerDown={event => down(event, index)} onPointerEnter={event => enter(event, index)} />;
   };
 
-  return <div className="w-full min-w-0">
+  return <div className="w-full min-w-0" data-capture-active={captureMode || local?.mode === 'keyboard' || local?.mode === 'mouse'}>
+    {isActive && <span className="sr-only" role="status">{captureMode ? '抓取模式' : '打字模式'}</span>}
     <div ref={sourceRef} data-source-text data-source-sentence={sentence.id} className="source-flow" aria-label="原文选词区"
       style={{ '--selection-scale': SELECTION_SCALE, '--selection-lift': `-${SELECTION_LIFT}px` } as React.CSSProperties}>
       <SelectionSurface container={sourceRef} sentence={sentence} selection={local} selected={isActive ? selectedRange : { start: -1, end: -1 }} isActive={isActive} />
