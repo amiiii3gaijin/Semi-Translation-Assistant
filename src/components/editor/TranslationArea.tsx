@@ -3,6 +3,9 @@ import { useDocumentStore } from '../../store/useDocumentStore';
 import { useCaptureModeStore } from '../../store/useCaptureModeStore';
 import { useSelectionStore } from '../../store/useSelectionStore';
 
+// The highlight may reach past the selection only into a space or the text's end, never over a neighbouring character.
+const openSide = (neighbour: string | undefined) => neighbour === undefined || /\s/.test(neighbour);
+
 interface TranslationAreaProps {
   sentenceId: string;
   initialText: string;
@@ -85,7 +88,10 @@ export function TranslationArea({ sentenceId, initialText, isActive, textareaRef
                     aria-hidden="true"
                     style={{ wordBreak: 'break-word', overflowWrap: 'anywhere', fontSize: `${translationFontSize}px` }}
                 >
-                    {initialText.slice(0, selected.start)}<mark>{initialText.slice(selected.start, selected.end)}</mark>{initialText.slice(selected.end) + ' '}
+                    {initialText.slice(0, selected.start)}<mark
+                        data-open-start={openSide(initialText[selected.start - 1]) || undefined}
+                        data-open-end={openSide(initialText[selected.end]) || undefined}
+                    >{initialText.slice(selected.start, selected.end)}</mark>{initialText.slice(selected.end) + ' '}
                 </div>
             )}
 
