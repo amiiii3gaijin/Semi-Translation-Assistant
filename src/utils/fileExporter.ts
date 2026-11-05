@@ -23,6 +23,7 @@ export function exportToTXT(documentState: DocumentState) {
 }
 
 export function translationText(documentState: DocumentState): string {
-  return documentState.sentences.map(s => s.translatedText)
+  // Captures leave a trailing space for the next word; it means nothing at a line end.
+  return documentState.sentences.map(s => s.translatedText.trimEnd())
     .filter(text => text.trim().length > 0).join('\n');
 }

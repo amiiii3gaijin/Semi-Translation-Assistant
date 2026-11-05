@@ -49,6 +49,12 @@ toggle();assert.equal(down('KeyJ',{key:'j'}).prevented,true,'unmapped printable 
 toggle();event('pointerdown','',{target:area});assert.equal(mode.getState().active,false,'clicking editor exits');
 pref.setState({returnToTypingAfterCapture:false});toggle();down('KeyS');up('KeyS');assert.equal(mode.getState().active,true,'continuous mode');down('Escape');pref.setState({returnToTypingAfterCapture:true});
 toggle();down('KeyS');area.value+='user edit';up('KeyS');assert.equal(mode.getState().active,true,'failed capture does not exit');down('Escape');
+const captureAt=(value:string,caret:number)=>{doc.getState().setActiveTokenIndex('s',0);area.value=value;area.setSelectionRange(caret,caret);toggle();down('KeyS');up('KeyS');return area.value;};
+pref.setState({spaceAfterCapture:true});
+assert.equal(captureAt('a',1),'a甲 ','capture ends with one space');assert.equal(area.selectionStart,3,'caret lands after the space');
+assert.equal(captureAt('a,',1),'a甲,','no space before closing punctuation');
+assert.equal(captureAt('a b',1),'a甲 b','no double space');
+pref.setState({spaceAfterCapture:false});
 doc.getState().setActiveTokenIndex('s',0);down('Numpad3');assert.equal(doc.getState().sentences[0].activeTokenIndex,3);
 const pageBaseline=pages;
 for(const code of ['ControlLeft','ControlRight','ShiftLeft','ShiftRight']) {down(code,code.startsWith('Control')?{ctrlKey:true}:{shiftKey:true});up(code);}

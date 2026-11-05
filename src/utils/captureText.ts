@@ -8,6 +8,12 @@ export function needsWordSpace(left: string, right: string): boolean {
   return /[\p{L}\p{M}\p{N}]$/u.test(left) && /^[\p{L}\p{M}\p{N}]/u.test(right);
 }
 
+// One space after every capture keeps the next typed word apart, unless the gap
+// is already there or closing punctuation follows, which takes no space before it.
+export function needsTrailingSpace(text: string, right: string): boolean {
+  return !/\s$/u.test(text) && !/^[\s,.;:!?)\]}'"”’，。；：！？、）》」』]/u.test(right);
+}
+
 export function captureText(sentence: Sentence, start: number, end: number): string {
   if (!!sentence.tokens[start]?.isAnnotation !== !!sentence.tokens[end]?.isAnnotation) return '';
   if (!usePreferencesStore.getState().spaceCapturedWords) return sourceText(sentence, start, end);

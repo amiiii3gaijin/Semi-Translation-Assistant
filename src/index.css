@@ -272,7 +272,9 @@ button:disabled { cursor: default; }
 .source-flow { --ui-cursor-text: white; }
 [data-capture-active="false"] .source-flow { --ui-cursor-text: currentColor; }
 [data-capture-active="false"] .source-selection-surface { background: white; box-shadow: var(--ui-shadow-cursor-idle); }
-.translation-input[data-capture-active="true"] { caret-color: color-mix(in srgb, var(--ui-blue) 45%, white); }
+/* While capturing, the keys drive the source cursor, so the caret stops claiming them by blinking.
+   It stays fully visible: captured text lands there. Browsers without caret-animation keep blinking. */
+.translation-input[data-capture-active="true"] { caret-animation: manual; }
 .source-selection-surface { transition: background-color 140ms ease, box-shadow 140ms ease; }
 @media (prefers-reduced-motion: reduce) { .source-selection-surface { transition: none; } }
 .source-token-slot { display: inline-block; position: relative; vertical-align: baseline; margin: 0 1px; max-width: 100%; z-index: 1; cursor: pointer; }

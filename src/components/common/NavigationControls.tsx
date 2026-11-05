@@ -37,7 +37,7 @@ export function NavigationControls() {
   const [showShortcuts, setShowShortcuts] = useState(false);
   const autoSelectGroups = usePreferencesStore(state => state.autoSelectGroups);
   const autoAdvanceAfterCapture = usePreferencesStore(state => state.autoAdvanceAfterCapture);
-  const { spaceCapturedWords, showPhraseMarkers, setSpaceCapturedWords, setShowPhraseMarkers } = usePreferencesStore();
+  const { spaceCapturedWords, showPhraseMarkers, setSpaceCapturedWords, setShowPhraseMarkers, spaceAfterCapture, setSpaceAfterCapture } = usePreferencesStore();
   const [showExitConfirm, setShowExitConfirm] = useState(false);
   const helpDock = useRef<HTMLDivElement>(null);
   const helpButton = useRef<HTMLButtonElement>(null);
@@ -98,6 +98,11 @@ export function NavigationControls() {
               <span>抓取后自动返回打字</span>
               <input type="checkbox" role="switch" checked={usePreferencesStore.getState().returnToTypingAfterCapture}
                 onChange={event => usePreferencesStore.getState().setReturnToTypingAfterCapture(event.target.checked)} />
+            </label>
+            <label className="preference-toggle">
+              <span>抓取后补一个空格</span>
+              <input type="checkbox" role="switch" checked={spaceAfterCapture}
+                onChange={event => setSpaceAfterCapture(event.target.checked)} />
             </label>
             <div>
               <label className="preference-toggle"><span>突出全文术语</span>

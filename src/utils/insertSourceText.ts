@@ -1,6 +1,6 @@
 import { useDocumentStore } from '../store/useDocumentStore';
 import { nextWord } from './sourceSelection';
-import { needsWordSpace } from './captureText';
+import { needsTrailingSpace, needsWordSpace } from './captureText';
 import { usePreferencesStore } from '../store/usePreferencesStore';
 import { useSelectionStore } from '../store/useSelectionStore';
 import { isNavigableToken } from './tokenNavigation';
@@ -21,6 +21,7 @@ export function insertSourceText(sentenceId: string, text: string, sourceEnd: nu
     if (needsWordSpace(textarea.value.slice(0, start), text)) text = ' ' + text;
     if (needsWordSpace(text, textarea.value.slice(end))) text += ' ';
   }
+  if (usePreferencesStore.getState().spaceAfterCapture && needsTrailingSpace(text, textarea.value.slice(end))) text += ' ';
   const expected = textarea.value.slice(0, start) + text + textarea.value.slice(end);
   textarea.focus({ preventScroll: true });
   textarea.setSelectionRange(start, end);
