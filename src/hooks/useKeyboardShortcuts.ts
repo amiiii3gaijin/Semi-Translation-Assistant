@@ -15,6 +15,7 @@ export function useKeyboardShortcuts(textareaRef: React.RefObject<HTMLTextAreaEl
   useEffect(() => {
     let fiveHeld = false;
     let altTap = false;
+    let altHeld = false;
     const leaveMode = () => useCaptureModeStore.getState().setActive(false);
     let captureKey: string | null = null;
     let cancelled = false;
@@ -35,19 +36,32 @@ export function useKeyboardShortcuts(textareaRef: React.RefObject<HTMLTextAreaEl
       return !element?.closest('input, textarea, select, [contenteditable="true"], .help-panel');
     };
     const handleKeyDown = (e: KeyboardEvent) => {
+      // A pad letter while right Alt is still down is a fast tap rolling into the letter, or Alt
+      // held on purpose. Either way it is a capture key; the browser would take Alt+D to the
+      // address bar and Alt+E to its menu. Alt (and AltGr's Ctrl) stop counting as modifiers.
+      const rolled = altHeld && !!ALT_PAD[e.code] && !e.metaKey && !e.shiftKey && !e.isComposing && allowed(e);
+      if (rolled) {
+        e.preventDefault(); e.stopPropagation();
+        altTap = false;
+        if (!useCaptureModeStore.getState().active) { cancel(); useCaptureModeStore.getState().setActive(true); }
+      }
+      const chord = !rolled && (e.altKey || e.ctrlKey);
       const mode = useCaptureModeStore.getState().active;
-      const code = commandCode(e.code, mode && !e.altKey && !e.ctrlKey && !e.metaKey && !e.shiftKey);
+      const code = commandCode(e.code, mode && !chord && !e.metaKey && !e.shiftKey);
       if (code === 'F9' && e.ctrlKey && e.altKey && e.shiftKey && !e.metaKey) return;
       if ((e.target as HTMLElement | null)?.closest('[data-ribbon-dev]')) return;
       if (!allowed(e)) { altTap = false; leaveMode(); cancel(); return; }
       if (e.code === 'AltRight' && !e.isComposing && allowed(e)) {
+        altHeld = true;
         if (!e.repeat) altTap = !e.shiftKey && !e.metaKey && !fiveHeld;
         if (fiveHeld) cancel();
         e.preventDefault(); e.stopPropagation(); return;
       }
       altTap = false;
       if (e.code === 'Escape') { leaveMode(); cancel(); return; }
-      if (e.isComposing || e.metaKey || e.ctrlKey || e.altKey || e.shiftKey || !allowed(e)) {
+      if (e.isComposing || e.metaKey || chord || e.shiftKey || !allowed(e)) {
+        // Left Alt on a pad letter is never a capture key, but it must not open the address bar either.
+        if (e.altKey && !e.ctrlKey && !e.metaKey && ALT_PAD[e.code] && allowed(e)) e.preventDefault();
         leaveMode();
         cancel();
         return;
@@ -170,6 +184,7 @@ export function useKeyboardShortcuts(textareaRef: React.RefObject<HTMLTextAreaEl
     };
     const handleKeyUp = (e: KeyboardEvent) => {
       if (e.code === 'AltRight') {
+        altHeld = false;
         if (altTap && allowed(e) && !e.isComposing) {
           e.preventDefault(); e.stopPropagation(); cancel();
           useCaptureModeStore.getState().setActive(!useCaptureModeStore.getState().active);
@@ -182,7 +197,7 @@ export function useKeyboardShortcuts(textareaRef: React.RefObject<HTMLTextAreaEl
       const selection = useSelectionStore.getState().selection;
       const store = useDocumentStore.getState();
       const sentence = store.sentences[store.currentActiveIndex];
-      const canCommit = !cancelled && !e.isComposing && !e.metaKey && !e.ctrlKey && !e.altKey && !e.shiftKey
+      const canCommit = !cancelled && !e.isComposing && !e.metaKey && (altHeld || (!e.ctrlKey && !e.altKey)) && !e.shiftKey
         && allowed(e) && selection?.mode === 'keyboard' && sentence?.id === selection.sentenceId;
       fiveHeld = false;
       if (canCommit && selection && sentence) {
@@ -193,7 +208,7 @@ export function useKeyboardShortcuts(textareaRef: React.RefObject<HTMLTextAreaEl
       cancelled = false;
       select(null);
     };
-    const onBlur = () => { altTap = false; leaveMode(); cancel(); fiveHeld = false; captureKey = null; };
+    const onBlur = () => { altTap = false; altHeld = false; leaveMode(); cancel(); fiveHeld = false; captureKey = null; };
     const onVisibility = () => { if (document.hidden) onBlur(); };
     const onFocus = (event: FocusEvent) => { if (!allowed(event)) onBlur(); };
     const onPointerDown = (event: PointerEvent) => {

@@ -44,7 +44,16 @@ const before=area.value;
 toggle();down('KeyS');down('Escape');up('KeyS');assert.equal(area.value,before);assert.equal(mode.getState().active,false);
 toggle();down('KeyS');listeners.get('blur')?.forEach(fn=>fn());up('KeyS');assert.equal(area.value,before);
 toggle();down('KeyQ',{isComposing:true});assert.equal(mode.getState().active,false);
-down('AltRight',{altKey:true});down('KeyQ',{altKey:true});up('AltRight');assert.equal(mode.getState().active,false,'Alt chord never toggles');
+down('AltRight',{altKey:true});down('KeyJ',{altKey:true});up('AltRight');assert.equal(mode.getState().active,false,'Alt chord never toggles');
+// Right Alt still down when a pad letter lands: the browser never sees Alt+D, the letter runs as a capture key.
+doc.getState().setActiveTokenIndex('s',0);down('AltRight',{altKey:true});
+assert.equal(down('KeyD',{altKey:true}).prevented,true,'Alt+D never reaches the address bar');
+assert.equal(mode.getState().active,true,'rolling off the tap enters capture');assert.equal(doc.getState().sentences[0].activeTokenIndex,1,'D moves right');
+up('KeyD',{altKey:true});up('AltRight');assert.equal(mode.getState().active,true,'releasing Alt after a rolled letter does not toggle back');
+assert.equal(down('KeyE',{altKey:true,ctrlKey:true}).prevented,false,'without right Alt held, Ctrl+Alt chords stay the browser\'s');down('Escape');
+assert.equal(down('KeyD',{altKey:true}).prevented,true,'left Alt+D is swallowed, not sent to the address bar');assert.equal(mode.getState().active,false,'left Alt never enters capture');
+const rolledBefore=area.value;doc.getState().setActiveTokenIndex('s',0);down('AltRight',{altKey:true});down('KeyS',{altKey:true});up('KeyS',{altKey:true});up('AltRight');
+assert.notEqual(area.value,rolledBefore,'a capture made with Alt still down is inserted');area.value=rolledBefore;
 toggle();assert.equal(down('KeyJ',{key:'j'}).prevented,true,'unmapped printable keys cannot leak into translation');toggle();assert.equal(mode.getState().active,false);
 toggle();event('pointerdown','',{target:area});assert.equal(mode.getState().active,false,'clicking editor exits');
 pref.setState({returnToTypingAfterCapture:false});toggle();down('KeyS');up('KeyS');assert.equal(mode.getState().active,true,'continuous mode');down('Escape');pref.setState({returnToTypingAfterCapture:true});
