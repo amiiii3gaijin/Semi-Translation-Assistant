@@ -31,7 +31,10 @@ export function TranslationArea({ sentenceId, initialText, isActive, textareaRef
       setSelected(previous => !focused || start === end ? null
         : previous?.start === start && previous.end === end ? previous : { start, end });
     };
-    const events = ['select', 'selectionchange', 'input', 'keyup', 'mouseup', 'focus', 'blur'];
+    // Not 'input': a state change from a native input listener renders before React's onChange
+    // has stored the edit, so the controlled textarea is written back to the old text and
+    // deleting or dragging a selection does nothing. handleChange clears the highlight instead.
+    const events = ['select', 'selectionchange', 'keyup', 'mouseup', 'focus', 'blur'];
     events.forEach(name => area.addEventListener(name, sync));
     document.addEventListener('selectionchange', sync);
     sync();
@@ -49,6 +52,8 @@ export function TranslationArea({ sentenceId, initialText, isActive, textareaRef
   }, [isActive, textareaRef]);
 
   const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    // Batched with the edit; the next selectionchange redraws a selection that survives it, such as dropped text.
+    setSelected(null);
     updateTranslation(sentenceId, e.target.value);
   };
   
