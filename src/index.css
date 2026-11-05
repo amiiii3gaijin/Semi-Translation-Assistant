@@ -269,7 +269,8 @@ button:disabled { cursor: default; }
    Every selected face keeps the same raised state until it leaves the selection. */
 .source-flow { position: relative; isolation: isolate; white-space: break-spaces; overflow-wrap: anywhere; text-align: center; line-height: 2; padding: 8px 0; tab-size: 4; touch-action: pan-y; user-select: none; }
 .source-annotation { margin: 0.8em auto 0; width: fit-content; max-width: min(100%, 42em); font-size: max(16px, 0.76em); font-weight: 400; line-height: 1.85; text-align: left; color: #626b78; }
-.source-annotation .source-token-face { padding-left: 0.04em; padding-right: 0.04em; }
+/* Annotation words keep the main text's share of space so a cursor never has to cover a neighbour. */
+.source-annotation .source-token-face { padding-left: 0.16em; padding-right: 0.16em; }
 .release-info { width: min(100%, 720px); margin: 24px auto; padding: 0 36px 24px; font-size: 13px; line-height: 1.8; color: #667085; }
 .release-info > div { display: flex; flex-wrap: wrap; gap: 8px 18px; justify-content: center; }
 .release-status { color: #737b88; font-size: 12px; }
@@ -286,7 +287,7 @@ button:disabled { cursor: default; }
    No third material: the cursor speaks the same language as the toolbar. */
 .source-flow { --ui-cursor-text: white; }
 [data-capture-active="false"] .source-flow { --ui-cursor-text: currentColor; }
-[data-capture-active="false"] .source-selection-surface { background: white; box-shadow: var(--ui-shadow-cursor-idle); }
+[data-capture-active="false"] .source-selection-surface { background: white; box-shadow: inset 0 0 0 5px white, var(--ui-shadow-cursor-idle); }
 /* While capturing, the keys drive the source cursor, so the caret stops claiming them by blinking.
    It stays fully visible: captured text lands there. Browsers without caret-animation keep blinking. */
 .translation-input[data-capture-active="true"] { caret-animation: manual; }
@@ -295,7 +296,8 @@ button:disabled { cursor: default; }
 .source-token-slot { display: inline-block; position: relative; vertical-align: baseline; margin: 0 1px; max-width: 100%; z-index: 1; cursor: pointer; }
 .source-token-face { display: inline-block; padding: 0 4px; border-radius: var(--ui-radius-word); transform-origin: center; transition: transform var(--ui-duration-quick) var(--ui-ease), color var(--ui-duration-quick) var(--ui-ease), background-color var(--ui-duration-quick) var(--ui-ease); }
 .source-token-slot:hover .source-token-face:not(.source-token-selected) { background: rgba(0,0,0,0.04); }
-.source-token-selected { transform: translateY(var(--selection-lift)) scale(var(--selection-scale)); }
+/* --face-scale is the magnification the line's gaps can hold (src/utils/cursorFit.ts); --selection-scale is the ceiling. */
+.source-token-selected { transform: translateY(var(--selection-lift)) scale(var(--face-scale, var(--selection-scale))); }
 .source-token-punctuation { color: #9ca3af; }
 .source-token-space { display: inline; margin: 0; }
 .source-token-space .source-token-face { display: inline; padding: 0; }
@@ -323,7 +325,20 @@ button:disabled { cursor: default; }
 /* Labelled toolbar buttons already say what they do. */
 @media (min-width: 761px) { .toolbar-left .ui-button[data-tip]::after, .toolbar-right .ui-button[data-tip]::after { display: none; } }
 .preference-toggle input:checked::after { transform: translateX(14px); }
-.source-selection-surface { position: absolute; border-radius: var(--ui-radius-word); background: var(--ui-blue); box-shadow: var(--ui-shadow-blue); transform-origin: center; }
+/* The inset ring in the fill colour paints over the hairline seam some GPU rasterisers leave a few pixels inside a rounded corner. */
+.source-selection-surface { position: absolute; border-radius: var(--ui-radius-word); background: var(--ui-blue); box-shadow: inset 0 0 0 5px var(--ui-blue), var(--ui-shadow-blue); transform-origin: center; }
+
+/* G2 corners. A circular arc meets a straight edge with a jump in curvature, which reads as a hard shoulder;
+   a superellipse eases into the edge. A squircle needs about 1.7x the radius to look as round, so the tokens grow
+   with it. Capsules take a milder curve so they still read as capsules; circles stay circles. */
+@supports (corner-shape: squircle) {
+  :root { --ui-radius-word: 17px; --ui-radius-control: 20px; --ui-radius-panel: 40px; --ui-radius-card: 54px; }
+  *, ::before, ::after { corner-shape: squircle; }
+  .ui-button--pill, .ui-range, .progress-pill, .ui-toast, .import-mode, .import-mode button, .import-mode-face, .import-submit,
+  .loading-track, .loading-fill, .trunk-term, .release-info summary, .ui-button[data-tip]::after { corner-shape: superellipse(1.2); }
+  .ui-button--round, .import-step-number, .preference-toggle input, .preference-toggle input::after { corner-shape: round; }
+  .translation-selection mark { border-radius: 0.5em; }
+}
 
 @media (min-width: 761px) and (max-width: 1100px) {
   .progress-metric { flex-direction: column; align-items: center; gap: 0; }

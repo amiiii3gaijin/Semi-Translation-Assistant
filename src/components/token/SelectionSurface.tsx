@@ -9,8 +9,7 @@ import { phraseMarkers } from '../../utils/phraseMarkers';
 import { connectMarkers } from '../../utils/markerConnections';
 import { fittedDashes } from '../../utils/markerPolicy';
 import { type SourceSelection } from '../../utils/sourceSelection';
-
-const CURSOR_SIDE_EM = 0.18;
+import { fitCursor } from '../../utils/cursorFit';
 
 interface SurfaceRect { x: number; y: number; width: number; height: number; row: number }
 interface Bounds { start: number; end: number }
@@ -152,29 +151,16 @@ export function SelectionSurface({ container, sentence, selected, selection, isA
         }
       });
       const rangeRects = ({ start, end }: Bounds) => {
-        const rows = new Map<number, SurfaceRect>();
-        for (const item of all) {
-          if (item.index < start || item.index > end) continue;
-          const rect = { ...item.rect };
-          // Expand each word footprint, not the whole phrase's horizontal scale.
-          // Height stays identical when a selection changes from one word to many.
-          // Annotation faces are nearly unpadded; give every cursor the same side room
-          // in em that the main text gets from its 4px face padding at 25px.
-          const breathing = Math.max(0, fontSize * CURSOR_SIDE_EM - item.pad * SELECTION_SCALE);
-          const padding = rect.width * (SELECTION_SCALE - 1) / 2 + breathing;
-          rect.x -= padding;
-          rect.width += padding * 2;
+        // Each word still scales about its own centre, but the whole selection shares one
+        // magnification that the line's gaps can hold. Height stays identical from one word to many.
+        const fit = fitCursor(all.map(({ index, rect, pad }) => ({ index, row: rect.row, x: rect.x, width: rect.width, pad })),
+          start, end, fontSize, SELECTION_SCALE);
+        element.style.setProperty('--face-scale', fit.scale.toFixed(4));
+        return fit.rows.map(({ row, left, right }) => {
+          const rect = all.find(item => item.rect.row === row && item.index >= start && item.index <= end)!.rect;
           const addedHeight = rect.height * (SELECTION_SCALE - 1);
-          rect.y -= addedHeight / 2 + SELECTION_LIFT;
-          rect.height += addedHeight;
-          const last = rows.get(rect.row);
-          if (last) {
-            const right = Math.max(last.x + last.width, rect.x + rect.width);
-            last.x = Math.min(last.x, rect.x);
-            last.width = right - last.x;
-          } else rows.set(rect.row, rect);
-        }
-        return [...rows.values()];
+          return { row, x: left, width: right - left, y: rect.y - addedHeight / 2 - SELECTION_LIFT, height: rect.height + addedHeight };
+        });
       };
       const markers = phraseMarkers(sentence, autoGroups, highlight).flatMap(group => {
           const rows = new Map<number, SurfaceRect>();
