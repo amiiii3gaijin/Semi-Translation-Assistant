@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { readFile, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { prepareImport, buildAssistedSentences, makePrompt } from '../src/utils/llmImport';
 
 // Replay the user's supplied V2 decisions, not a fresh model run. Only the
@@ -39,6 +39,11 @@ const rows = examples.map(text => {
   return `| ${text} | ${show(before)} | ${show(after)} |`;
 });
 const summary = `# 平台文章分词 V5 复测\n\n使用此前保存的同篇中文原文（${source.length} 个 UTF-16 字符）；手动半翻成果只作抓取偏好证据，不包含后加备注的逐字对齐。\n\n| 表达 | 修改前细词 | 修改后细词 |\n|---|---|---|\n${rows.join('\n')}\n\n- 原文、空格与标点完整性：通过。\n- 同文基础测试：${before.integrityErrors.length} → ${after.integrityErrors.length} 项完整性错误。\n- 回放用户提供的 16 个 terms、7 个 suggestions：${coverage.reduce((n, r) => n + r.available, 0)} / ${coverage.reduce((n, r) => n + r.occurrences, 0)} 处可通过单词或词组完整选取。此指标仅证明既有建议落地，不是语义准确率。\n- 一处重叠：“退回旧版 App”中的“退回旧版”候选让位于默认词组“旧版 App”；没有把二者合成更大的整段。\n- 模型未提交的“设备配置”“带广告的版本”：本地候选已补充。\n- 新提示词含 ${prep.boundaryHints?.length ?? 0} 处真实疑难切法，最多 8 处，序列化内容合计不超过 1,200 字符；提示词共 ${makePrompt(prep).length} 个 UTF-16 字符，不等于 tokens。\n- 未调用 Gemini；不能据此证明新提示词的实际输出质量或耗时。\n- 已有 LLM 工作区不自动重切，以免覆盖之前审阅的分词；新导入生效。\n`;
-await writeFile('local-only/平台文章-v5复测.md', summary, 'utf8');
-await writeFile('local-only/icai-v5-assisted-review.json', JSON.stringify({ coverage, boundaryHints: prep.boundaryHints, sentences }, null, 2), 'utf8');
+// Default run only asserts and prints. --write saves a new timestamped copy and never overwrites dated records.
+if (process.argv.includes('--write')) {
+  const stamp = new Date().toLocaleString('sv-SE').replace(/[-:]/g, '').replace(' ', '-');
+  await mkdir('local-only/报告', { recursive: true });
+  await writeFile(`local-only/报告/平台文章复测-${stamp}.md`, summary, 'utf8');
+  await writeFile(`local-only/报告/平台文章复测-${stamp}.json`, JSON.stringify({ coverage, boundaryHints: prep.boundaryHints, sentences }, null, 2), 'utf8');
+}
 console.log(summary);
