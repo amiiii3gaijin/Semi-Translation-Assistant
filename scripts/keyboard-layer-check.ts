@@ -50,11 +50,15 @@ toggle();event('pointerdown','',{target:area});assert.equal(mode.getState().acti
 pref.setState({returnToTypingAfterCapture:false});toggle();down('KeyS');up('KeyS');assert.equal(mode.getState().active,true,'continuous mode');down('Escape');pref.setState({returnToTypingAfterCapture:true});
 toggle();down('KeyS');area.value+='user edit';up('KeyS');assert.equal(mode.getState().active,true,'failed capture does not exit');down('Escape');
 const captureAt=(value:string,caret:number)=>{doc.getState().setActiveTokenIndex('s',0);area.value=value;area.setSelectionRange(caret,caret);toggle();down('KeyS');up('KeyS');return area.value;};
-pref.setState({spaceAfterCapture:true});
-assert.equal(captureAt('a',1),'a甲 ','capture ends with one space');assert.equal(area.selectionStart,3,'caret lands after the space');
-assert.equal(captureAt('a,',1),'a甲,','no space before closing punctuation');
-assert.equal(captureAt('a b',1),'a甲 b','no double space');
-pref.setState({spaceAfterCapture:false});
+pref.setState({spaceAroundCapture:true});
+assert.equal(captureAt('and',3),'and 甲 ','capture stands apart on both sides');assert.equal(area.selectionStart,6,'caret lands after the space');
+assert.equal(captureAt('',0),'甲 ','no space at the start of the line');
+assert.equal(captureAt('a,',1),'a 甲,','no space before closing punctuation');
+assert.equal(captureAt('a b',1),'a 甲 b','no double space');
+assert.equal(captureAt('the (',5),'the (甲 ','no space after an opening bracket');
+assert.equal(captureAt('say "',5),'say "甲 ','no space inside an opening quote');
+assert.equal(captureAt('as, ',4),'as, 甲 ','existing space is reused');
+pref.setState({spaceAroundCapture:false});
 doc.getState().setActiveTokenIndex('s',0);down('Numpad3');assert.equal(doc.getState().sentences[0].activeTokenIndex,3);
 const pageBaseline=pages;
 for(const code of ['ControlLeft','ControlRight','ShiftLeft','ShiftRight']) {down(code,code.startsWith('Control')?{ctrlKey:true}:{shiftKey:true});up(code);}

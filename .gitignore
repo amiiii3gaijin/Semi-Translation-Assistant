@@ -10,3 +10,7 @@ coverage/
 
 # Local documentation, manual checks and development helpers.
 /local-only/
+
+# Third-party design skill (Impeccable) and its working files; kept local.
+/.claude/
+/.impeccable/

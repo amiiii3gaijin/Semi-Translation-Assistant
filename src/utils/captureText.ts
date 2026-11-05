@@ -8,8 +8,16 @@ export function needsWordSpace(left: string, right: string): boolean {
   return /[\p{L}\p{M}\p{N}]$/u.test(left) && /^[\p{L}\p{M}\p{N}]/u.test(right);
 }
 
-// One space after every capture keeps the next typed word apart, unless the gap
-// is already there or closing punctuation follows, which takes no space before it.
+// Every capture stands apart from its neighbours with one space on each side,
+// unless the gap is already there, the line starts or ends, or punctuation hugs it:
+// opening marks take no space after them, closing marks none before them.
+export function needsLeadingSpace(left: string, text: string): boolean {
+  if (!left || /\s$/u.test(left) || /^\s/u.test(text)) return false;
+  if (/[(\[{“‘（《「『]$/u.test(left)) return false;
+  // A straight quote after a space or at the start opens a quotation.
+  return !/(?:^|\s)['"]$/u.test(left);
+}
+
 export function needsTrailingSpace(text: string, right: string): boolean {
   return !/\s$/u.test(text) && !/^[\s,.;:!?)\]}'"”’，。；：！？、）》」』]/u.test(right);
 }

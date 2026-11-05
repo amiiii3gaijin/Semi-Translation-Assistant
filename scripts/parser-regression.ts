@@ -69,6 +69,13 @@ assert.ok(!words('把信托付给朋友。').includes('信托'));
 assert.ok(words('信托付款完成。').includes('信托'));
 assert.ok(!words('4KB 文件').includes('4K'));
 assert.ok(!parseSentence('Zhihu 不是学术来源。', 'negative').groups.some(g => g.label === '不是学术'));
+// 不 stays with the verb or adjective it negates; fixed readings and nouns are untouched.
+for (const [text, word] of [['影响健康不平等。', '不平等'], ['公众不信任政府。', '不信任'], ['结果不确定。', '不确定'], ['这不可能。', '不可能'], ['机会不均等。', '不均等'], ['这不一定对。', '不一定']])
+  assert.ok(words(text).includes(word), word);
+for (const [text, word] of [['不同意见很多。', '不同'], ['不得不承认。', '不得不'], ['差不多了。', '差不多'], ['不动产登记。', '不动产']])
+  assert.ok(words(text).includes(word), word);
+assert.deepEqual(words('它独立于前者。').slice(0, 3), ['它', '独立', '于']);
+assert.ok(words('立于不败之地。').includes('立于不败之地'));
 for (const text of ['设备配置', '撤回按钮', '投屏清晰度', '长视频会员平台', '带广告的版本', '自愿报名的用户', '一键关掉']) {
   const parsed = parseSentence(`请检查${text}。`, 'phrase');
   assert.ok(parsed.groups.some(g => g.label === text && g.autoSelect), text);

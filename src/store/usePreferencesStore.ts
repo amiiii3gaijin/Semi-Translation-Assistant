@@ -11,8 +11,8 @@ interface Preferences {
   setCaptureUnit: (value: 'word' | 'group') => void;
   setProgressMode: (value: 'filled' | 'position') => void;
   spaceCapturedWords: boolean;
-  spaceAfterCapture: boolean;
-  setSpaceAfterCapture: (value: boolean) => void;
+  spaceAroundCapture: boolean;
+  setSpaceAroundCapture: (value: boolean) => void;
   showPhraseMarkers: boolean;
   autoSelectGroups: boolean;
   autoAdvanceAfterCapture: boolean;
@@ -32,8 +32,8 @@ export const usePreferencesStore = create<Preferences>()(persist(set => ({
   setCaptureUnit: captureUnit => set({ captureUnit }),
   setProgressMode: progressMode => set({ progressMode }),
   spaceCapturedWords: false,
-  spaceAfterCapture: true,
-  setSpaceAfterCapture: (value: boolean) => set({ spaceAfterCapture: value }),
+  spaceAroundCapture: true,
+  setSpaceAroundCapture: (value: boolean) => set({ spaceAroundCapture: value }),
   showPhraseMarkers: true,
   autoSelectGroups: true,
   autoAdvanceAfterCapture: true,

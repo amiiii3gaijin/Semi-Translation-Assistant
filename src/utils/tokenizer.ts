@@ -7,9 +7,38 @@ import { markdownMarkers } from './textStructure';
 // Vite resolves ESM; Node resolves the package's CommonJS entry.
 const { Segment, useDefault } = (Reflect.get(Segmentit, 'default') ?? Segmentit) as typeof Segmentit;
 
-export const PARSER_VERSION = 8;
+export const PARSER_VERSION = 9;
 let segmentitInstance: ReturnType<typeof useDefault> | null = null;
 const getSegmentit = () => segmentitInstance ?? (segmentitInstance = useDefault(new Segment()));
+
+type SegmentWord = { w: string; p?: number };
+const segmentWords = (text: string) => getSegmentit().doSegment(text) as SegmentWord[];
+// A dictionary word comes back whole and tagged; unknown runs come back untagged.
+const dictionaryWord = (text: string): SegmentWord | null => {
+  const words = segmentWords(text);
+  return words.length === 1 && words[0].w === text && words[0].p !== undefined ? words[0] : null;
+};
+const VERB = 4096, ADJECTIVE = 1073741824;
+
+// 不 binds to the verb or adjective right after it, so 不平等 is not cut into 不平/等
+// and a negation is never captured apart from its word. Nouns (不动产) stay with the segmenter.
+function negatedWord(rest: string): SegmentWord | null {
+  const first = segmentWords(rest)[0];
+  if (!first || first.w.length < 2 || !rest.startsWith(first.w) || first.p === undefined) return null;
+  return first.p & (VERB | ADJECTIVE) ? first : null;
+}
+
+// The segmenter prefers 立于 in 独立于; keep the verb whole and 于 apart.
+function repairYu(words: SegmentWord[]): SegmentWord[] {
+  const result: SegmentWord[] = [];
+  for (let i = 0; i < words.length; i++) {
+    const word = words[i], next = words[i + 1];
+    const whole = word.w.length === 1 && next?.w.length === 2 && next.w[1] === '于' ? dictionaryWord(word.w + next.w[0]) : null;
+    if (whole) { result.push(whole, { w: '于', p: next.p }); i++; }
+    else result.push(word);
+  }
+  return result;
+}
 
 function partOfSpeech(p?: number): string {
   if (p === undefined) return 'unk';
@@ -23,7 +52,7 @@ function partOfSpeech(p?: number): string {
 export interface TokenTrace { start: number; end: number; origin: 'segmentit' | 'lexicon' | 'source-gap' | 'protected-run' | 'document-term' | 'boundary-repair' }
 
 // Basic word boundaries, separate from semantic phrase suggestions.
-const WORD_BOUNDARIES = ['量身定制', '标志物', '语言', '文化', '报告', '水平', '成长', '学生', '心理学', '信托', '托付', '全部', '互操作', '长视频', '断订', '防控', '已有', '带毒', '广播', '筛查', '进不去'];
+const WORD_BOUNDARIES = ['量身定制', '标志物', '语言', '文化', '报告', '水平', '成长', '学生', '心理学', '信托', '托付', '全部', '互操作', '长视频', '断订', '防控', '已有', '带毒', '广播', '筛查', '进不去', '不一定', '归因'];
 
 export function tokenize(sentence: string, sentenceId: string, observe?: (trace: TokenTrace) => void, context?: ParserContext): Token[] {
   const tokens: Token[] = [];
@@ -39,7 +68,7 @@ export function tokenize(sentence: string, sentenceId: string, observe?: (trace:
     observe?.({ start, end, origin });
   };
   const segmentHan = (text: string, offset: number) => {
-    const words = getSegmentit().doSegment(text) as { w: string; p?: number }[];
+    const words = repairYu(segmentWords(text));
     let cursor = 0;
     for (const word of words) {
       if (!word.w) continue;
@@ -82,7 +111,15 @@ export function tokenize(sentence: string, sentenceId: string, observe?: (trace:
         // Avoid repairing across a different word: 信/托付, 不断/订正.
         && !(entry.text === '信托' && text.slice(cursor + 2, cursor + 4) === '付给' && /[把将]/u.test(text[cursor - 1] ?? ''))
         && !(['断订', '不断订'].includes(entry.text) && /^[正购阅货单票立制做]/u.test(text.slice(cursor + entry.text.length))));
-      if (!phrase) { cursor++; continue; }
+      if (!phrase) {
+        // 不得不 keeps its own reading.
+        const negated = text[cursor] === '不' && text[cursor - 1] !== '得' ? negatedWord(text.slice(cursor + 1)) : null;
+        if (!negated) { cursor++; continue; }
+        if (cursor > plainStart) segmentHan(text.slice(plainStart, cursor), offset + plainStart);
+        const end = cursor + 1 + negated.w.length;
+        append(offset + cursor, offset + end, partOfSpeech(negated.p), false, 'boundary-repair', negated.p);
+        cursor = end; plainStart = cursor; continue;
+      }
       if (cursor > plainStart) segmentHan(text.slice(plainStart, cursor), offset + plainStart);
       for (const piece of phrase.parts) {
         const analysis = getSegmentit().doSegment(piece) as { w: string; p?: number }[];

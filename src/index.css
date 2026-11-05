@@ -224,6 +224,13 @@ button:disabled { cursor: default; }
 .sentence-translation { width: 100%; padding: 32px 30px 40px; position: relative; flex-shrink: 0; }
 .sentence-divider { height: 1px; flex-shrink: 0; width: 100%; margin: 8px 0; background: linear-gradient(to right, transparent, rgba(209,213,219,0.4), transparent); }
 .translation-input { border-radius: var(--ui-radius-control); transition: box-shadow var(--ui-duration-control) var(--ui-ease); }
+/* Selected translation text is a run of blue keys: rounded per line, white text, the blue glow.
+   The highlight layer mirrors the textarea's layout, so it may only paint, never take space. */
+.translation-input::selection { background: transparent; color: white; }
+.translation-selection { color: transparent; }
+.translation-selection mark { color: transparent; background: var(--ui-blue); border-radius: 0.3em;
+  box-decoration-break: clone; -webkit-box-decoration-break: clone;
+  box-shadow: 0 0 0 0.08em var(--ui-blue), var(--ui-shadow-blue); }
 .trunk-dock { position: absolute; bottom: var(--ui-footer-edge); left: 50%; transform: translateX(-50%); z-index: 50; display: flex; flex-direction: column; align-items: center; }
 .trunk-toggle { font-size: 12px; min-height: 36px; padding: 8px 16px; }
 .trunk-popover { position: absolute; bottom: 56px; width: min(672px, calc(100vw - 48px)); max-height: calc(100dvh - 180px); overflow: hidden; padding: 20px 10px; display: flex; flex-direction: column; }

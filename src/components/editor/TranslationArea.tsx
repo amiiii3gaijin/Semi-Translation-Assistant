@@ -1,4 +1,4 @@
-import React, { useEffect, RefObject } from 'react';
+import React, { useEffect, useState, RefObject } from 'react';
 import { useDocumentStore } from '../../store/useDocumentStore';
 import { useCaptureModeStore } from '../../store/useCaptureModeStore';
 import { useSelectionStore } from '../../store/useSelectionStore';
@@ -18,6 +18,28 @@ export function TranslationArea({ sentenceId, initialText, isActive, textareaRef
   // Mirrors TokenList's data-capture-active so only one cursor looks live at a time.
   const capturing = useCaptureModeStore(state => state.active);
   const selecting = useSelectionStore(state => state.selection?.sentenceId === sentenceId && state.selection.mode !== 'preview');
+
+  // The native textarea selection is a square system-blue block; it is painted
+  // transparent and redrawn here as rounded blue runs behind the text.
+  const [selected, setSelected] = useState<{ start: number; end: number } | null>(null);
+  useEffect(() => {
+    const area = textareaRef?.current;
+    if (!area || !isActive) { setSelected(null); return; }
+    const sync = () => {
+      const focused = document.activeElement === area;
+      const { selectionStart: start, selectionEnd: end } = area;
+      setSelected(previous => !focused || start === end ? null
+        : previous?.start === start && previous.end === end ? previous : { start, end });
+    };
+    const events = ['select', 'selectionchange', 'input', 'keyup', 'mouseup', 'focus', 'blur'];
+    events.forEach(name => area.addEventListener(name, sync));
+    document.addEventListener('selectionchange', sync);
+    sync();
+    return () => {
+      events.forEach(name => area.removeEventListener(name, sync));
+      document.removeEventListener('selectionchange', sync);
+    };
+  }, [isActive, textareaRef]);
 
   useEffect(() => {
       if (isActive && textareaRef?.current) {
@@ -51,7 +73,17 @@ export function TranslationArea({ sentenceId, initialText, isActive, textareaRef
             >
                 {initialText + ' '}
             </div>
-            
+
+            {selected && (
+                <div
+                    className="translation-selection col-start-1 row-start-1 whitespace-pre-wrap w-full font-sans font-medium leading-[1.6] tracking-tight text-left pointer-events-none p-4"
+                    aria-hidden="true"
+                    style={{ wordBreak: 'break-word', overflowWrap: 'anywhere', fontSize: `${translationFontSize}px` }}
+                >
+                    {initialText.slice(0, selected.start)}<mark>{initialText.slice(selected.start, selected.end)}</mark>{initialText.slice(selected.end) + ' '}
+                </div>
+            )}
+
             <textarea
                 ref={textareaRef}
                 data-sentence-id={sentenceId}

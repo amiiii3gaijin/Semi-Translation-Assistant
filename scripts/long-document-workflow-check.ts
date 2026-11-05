@@ -31,6 +31,12 @@ const joined=connectMarkers([m('a',0,0,0,'same'),m('b',24,1,1,'same')],25);
 assert.equal(joined.filter(m=>m.dot).length,1); assert.ok(joined[0].width<=20); assert.ok(joined[1].x>=24);
 assert.equal(connectMarkers([m('a',0,0,0,'one'),m('b',24,1,1,'two')],25).filter(m=>m.dot).length,0);
 assert.equal(connectMarkers([m('a',0,0,0,'same'),m('b',0,1,1,'same',1)],25).filter(m=>m.dot).length,2);
+// A tint change alone is one unbroken line meeting in the gap's middle, never a grey dot.
+const tinted=connectMarkers([m('a',0,0,0,'same'),{...m('b',24,1,1,'same'),consistent:true}],25);
+assert.equal(tinted.filter(m=>m.dot).length,0); assert.equal(tinted[0].x+tinted[0].width,22); assert.equal(tinted[1].x,22);
+const wrapped=connectMarkers([m('a',0,0,0,'same'),{...m('b',0,1,1,'same',1),consistent:true}],25).filter(m=>m.dot);
+assert.deepEqual(wrapped.map(d=>d.consistent),[false,true]);
+assert.ok(connectMarkers([{...m('a',0,0,0,'same'),dashed:true},{...m('b',24,1,1,'same'),consistent:true}],25).some(m=>m.dot&&m.consistent));
 for (const s of imported) {
  const baseline=phraseMarkers(s,true,false);
  for(let i=0;i<s.tokens.length;i++) assert.deepEqual(phraseMarkers({...s,activeTokenIndex:i},true,false),baseline);

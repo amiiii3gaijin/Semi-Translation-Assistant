@@ -10,6 +10,8 @@ import { connectMarkers } from '../../utils/markerConnections';
 import { fittedDashes } from '../../utils/markerPolicy';
 import { type SourceSelection } from '../../utils/sourceSelection';
 
+const CURSOR_SIDE_EM = 0.18;
+
 interface SurfaceRect { x: number; y: number; width: number; height: number; row: number }
 interface Bounds { start: number; end: number }
 interface Geometry {
@@ -127,7 +129,7 @@ export function SelectionSurface({ container, sentence, selected, selection, isA
     let frame = 0;
     const measure = () => {
       if (disposed || !element.offsetWidth || !element.offsetHeight) return;
-      const all: { index: number; rect: SurfaceRect }[] = [];
+      const all: { index: number; rect: SurfaceRect; pad: number }[] = [];
       const rowCenters: number[] = [];
       const lineHeight = parseFloat(getComputedStyle(element).lineHeight) || 50;
       const fontSize = parseFloat(getComputedStyle(element).fontSize) || 25;
@@ -142,7 +144,8 @@ export function SelectionSurface({ container, sentence, selected, selection, isA
           const center = slot.offsetTop + slot.offsetHeight / 2;
           let row = rowCenters.findIndex(value => Math.abs(value - center) < lineHeight / 3);
           if (row < 0) { row = rowCenters.length; rowCenters.push(center); }
-          all.push({ index, rect: {
+          const face = slot.querySelector<HTMLElement>('.source-token-face');
+          all.push({ index, pad: face ? parseFloat(getComputedStyle(face).paddingLeft) || 0 : 0, rect: {
             x: slot.offsetLeft, y: center - lineHeight / 2,
             width: slot.offsetWidth, height: lineHeight, row,
           } });
@@ -155,7 +158,10 @@ export function SelectionSurface({ container, sentence, selected, selection, isA
           const rect = { ...item.rect };
           // Expand each word footprint, not the whole phrase's horizontal scale.
           // Height stays identical when a selection changes from one word to many.
-          const padding = rect.width * (SELECTION_SCALE - 1) / 2;
+          // Annotation faces are nearly unpadded; give every cursor the same side room
+          // in em that the main text gets from its 4px face padding at 25px.
+          const breathing = Math.max(0, fontSize * CURSOR_SIDE_EM - item.pad * SELECTION_SCALE);
+          const padding = rect.width * (SELECTION_SCALE - 1) / 2 + breathing;
           rect.x -= padding;
           rect.width += padding * 2;
           const addedHeight = rect.height * (SELECTION_SCALE - 1);
@@ -236,7 +242,8 @@ export function SelectionSurface({ container, sentence, selected, selection, isA
       })}
     </AnimatePresence>
     {showPhraseMarkers && <svg className="source-phrase-ribbons" aria-hidden="true" style={{ color: ribbonColor(parameters) }}>
-      {geometry.markers.map(line => <path key={line.id}
+      {/* Tinted lines draw last so their round ends sit over the grey line at a colour change. */}
+      {[...geometry.markers].sort((a, b) => Number(a.consistent) - Number(b.consistent)).map(line => <path key={line.id}
         ref={node => {
           if (node) {
             paths.current.set(line.id, node);
