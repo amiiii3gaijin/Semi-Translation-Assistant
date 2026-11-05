@@ -264,8 +264,7 @@ button:disabled { cursor: default; }
 .release-info summary { cursor: pointer; text-align: center; }
 .release-info section { margin-top: 18px; }
 .release-info ul { padding-left: 20px; list-style: disc; }
-[data-capture-active="false"] .source-selection-surface { background: #e3edff; box-shadow: none; }
-[data-capture-active="false"] .source-token-selected { color: #243f68 !important; }
+[data-capture-active="false"] .source-selection-surface { background: #2856a0; box-shadow: 0 2px 5px rgba(25, 57, 110, 0.12); }
 .source-selection-surface { transition: background-color 140ms ease, box-shadow 140ms ease; }
 @media (prefers-reduced-motion: reduce) { .source-selection-surface { transition: none; } }
 .source-token-slot { display: inline-block; position: relative; vertical-align: baseline; margin: 0 1px; max-width: 100%; z-index: 1; cursor: pointer; }
