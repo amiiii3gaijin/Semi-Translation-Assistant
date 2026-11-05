@@ -46,6 +46,13 @@ button:focus-visible, a:focus-visible, input:focus-visible {
   outline: 2px solid color-mix(in srgb, var(--ui-blue) 65%, transparent);
   outline-offset: 4px;
 }
+/* Keyboard focus on the two button materials looks like their hover: raised, deeper shadow.
+   A hollow ring would be a third material. Switches and sliders take the input halo instead. */
+.ui-button:focus-visible { outline: none; }
+.ui-button--surface:not(:disabled):focus-visible { background: white; color: var(--ui-blue); box-shadow: var(--ui-shadow-hover); transform: translateY(-2px); }
+.ui-button--primary:not(:disabled):focus-visible { background: var(--ui-blue-hover); box-shadow: var(--ui-shadow-blue-hover); transform: translateY(-2px); }
+.ui-button--quiet:focus-visible { color: var(--ui-ink); background: rgba(17,24,39,0.06); }
+.preference-toggle input:focus-visible, .ui-range:focus-visible { outline: none; box-shadow: 0 0 0 3px color-mix(in srgb, var(--ui-blue) 22%, transparent); }
 textarea:focus-visible { outline: none; box-shadow: 0 0 0 2px color-mix(in srgb, var(--ui-blue) 13%, transparent); }
 .translation-input:focus-visible { outline: none; box-shadow: none; }
 button:disabled { cursor: default; }
@@ -70,19 +77,14 @@ button:disabled { cursor: default; }
 }
 .ui-button--primary { background: var(--ui-blue); color: white; box-shadow: var(--ui-shadow-blue); }
 .ui-button--quiet { color: var(--ui-muted); background: transparent; }
-.ui-button--ink { background: #111827; color: white; }
-.ui-button--danger { background: #fef2f2; color: #b91c1c; border-color: rgba(185,28,28,0.05); }
 @media (hover: hover) {
   .ui-button--surface:not(:disabled):hover { background: white; color: var(--ui-blue); box-shadow: var(--ui-shadow-hover); transform: translateY(-2px); }
   .ui-button--primary:not(:disabled):hover { background: var(--ui-blue-hover); box-shadow: var(--ui-shadow-blue-hover); transform: translateY(-2px); }
   .ui-button--quiet:not(:disabled):hover { color: var(--ui-ink); background: rgba(17,24,39,0.04); }
-  .ui-button--ink:not(:disabled):hover { background: #030712; box-shadow: var(--ui-shadow-control); transform: translateY(-2px); }
-  .ui-button--danger:not(:disabled):hover { background: #fee2e2; }
 }
 .ui-button:not(:disabled):active { transform: translateY(0) scale(0.98); }
 .ui-button:disabled { transform: none; color: #9ca3af; }
 .ui-button--primary:disabled { background: #f1f2f4; color: #727b89; box-shadow: none; }
-.ui-button--ink:disabled { background: #e5e7eb; color: #6b7280; }
 .ui-panel {
   background: rgba(255,255,255,0.95); border: 1px solid var(--ui-border);
   border-radius: var(--ui-radius-panel); box-shadow: var(--ui-shadow-panel);
@@ -114,12 +116,12 @@ button:disabled { cursor: default; }
 .help-divider { height: 1px; background: var(--ui-border); margin: 24px 0; }
 .shortcut-list { display: grid; gap: 12px; padding: 0; margin: 16px 0; list-style: none; }
 .shortcut-list li { display: flex; align-items: center; justify-content: space-between; gap: 16px; font-size: 12px; line-height: 1.5; color: #4b5563; }
-.shortcut-list kbd { background: #f9fafb; border: 1px solid var(--ui-border); border-radius: 6px; padding: 3px 7px; font-family: inherit; font-size: 12px; white-space: nowrap; }
-.shortcut-list .shortcut-primary { background: var(--ui-blue); color: white; }
+.shortcut-list kbd { background: white; border-radius: var(--ui-radius-word); padding: 3px 9px; box-shadow: var(--ui-shadow-control); color: var(--ui-ink); font-family: inherit; font-size: 12px; font-weight: 600; white-space: nowrap; }
+.shortcut-list .shortcut-primary { background: var(--ui-blue); color: white; box-shadow: var(--ui-shadow-blue); }
 .help-copy { margin: 10px 0 0; }
 .ui-range { display: block; width: 100%; height: 6px; border-radius: var(--ui-radius-pill); appearance: none; background: #e5e7eb; cursor: pointer; }
-.ui-range::-webkit-slider-thumb { appearance: none; width: 16px; height: 16px; border-radius: 50%; background: white; border: 1px solid #d1d5db; box-shadow: 0 2px 6px rgba(0,0,0,0.12); }
-.ui-range::-moz-range-thumb { width: 16px; height: 16px; border-radius: 50%; background: white; border: 1px solid #d1d5db; box-shadow: 0 2px 6px rgba(0,0,0,0.12); }
+.ui-range::-webkit-slider-thumb { appearance: none; width: 16px; height: 16px; border-radius: 50%; background: white; border: 0; box-shadow: 0 1px 3px rgba(0,0,0,.16), 0 3px 8px rgba(0,0,0,.08); }
+.ui-range::-moz-range-thumb { width: 16px; height: 16px; border-radius: 50%; background: white; border: 0; box-shadow: 0 1px 3px rgba(0,0,0,.16), 0 3px 8px rgba(0,0,0,.08); }
 .sentence-navigation { position: absolute; right: var(--ui-footer-edge); bottom: var(--ui-footer-edge); z-index: 60; display: flex; gap: 12px; }
 
 .progress-track { position: absolute; top: 0; left: 0; width: 100%; height: 6px; background: rgba(255,255,255,0.3); border-bottom: 1px solid var(--ui-border); z-index: 100; pointer-events: none; }
@@ -132,7 +134,7 @@ button:disabled { cursor: default; }
 .progress-number { min-width: 4ch; text-align: right; }
 .progress-page { text-align: center; }
 .progress-separator { width: 1px; height: 20px; background: var(--ui-border); }
-.ui-toast { position: fixed; left: 50%; bottom: 104px; transform: translate(-50%, 8px); z-index: 120; max-width: min(440px, calc(100vw - 32px)); padding: 12px 18px; border-radius: var(--ui-radius-control); background: rgba(31,41,55,0.96); color: white; font-size: 14px; line-height: 1.6; text-align: center; box-shadow: var(--ui-shadow-panel); opacity: 0; pointer-events: none; transition: opacity var(--ui-duration-panel) var(--ui-ease), transform var(--ui-duration-panel) var(--ui-ease); }
+.ui-toast { position: fixed; left: 50%; bottom: 104px; transform: translate(-50%, 8px); z-index: 120; max-width: min(440px, calc(100vw - 32px)); padding: 12px 18px; border-radius: var(--ui-radius-panel); background: rgba(255,255,255,0.98); border: 1px solid var(--ui-border); color: var(--ui-ink); font-size: 14px; font-weight: 600; line-height: 1.6; text-align: center; box-shadow: var(--ui-shadow-panel); opacity: 0; pointer-events: none; transition: opacity var(--ui-duration-panel) var(--ui-ease), transform var(--ui-duration-panel) var(--ui-ease); }
 .ui-toast--visible { opacity: 1; transform: translate(-50%, 0); }
 
 .import-screen { height: 100dvh; overflow-y: auto; display: flex; flex-direction: column; padding: 32px; background: white; }
@@ -228,6 +230,8 @@ button:disabled { cursor: default; }
    The highlight layer mirrors the textarea's layout, so it may only paint, never take space. */
 .translation-input::selection { background: transparent; color: white; }
 .translation-selection { color: transparent; }
+/* Everywhere else the selection keeps the browser's square shape but takes the blue-key colours. */
+::selection { background: var(--ui-blue); color: white; }
 .translation-selection mark { color: transparent; background: var(--ui-blue); border-radius: 0.3em;
   box-decoration-break: clone; -webkit-box-decoration-break: clone;
   box-shadow: 0 0 0 0.08em var(--ui-blue), var(--ui-shadow-blue); }
@@ -266,11 +270,15 @@ button:disabled { cursor: default; }
 .source-flow { position: relative; isolation: isolate; white-space: break-spaces; overflow-wrap: anywhere; text-align: center; line-height: 2; padding: 8px 0; tab-size: 4; touch-action: pan-y; user-select: none; }
 .source-annotation { margin: 0.8em auto 0; width: fit-content; max-width: min(100%, 42em); font-size: max(16px, 0.76em); font-weight: 400; line-height: 1.85; text-align: left; color: #626b78; }
 .source-annotation .source-token-face { padding-left: 0.04em; padding-right: 0.04em; }
-.release-info { width: min(100%, 880px); margin: 24px auto; padding: 0 24px 24px; font-size: 13px; line-height: 1.8; color: #667085; }
+.release-info { width: min(100%, 720px); margin: 24px auto; padding: 0 36px 24px; font-size: 13px; line-height: 1.8; color: #667085; }
 .release-info > div { display: flex; flex-wrap: wrap; gap: 8px 18px; justify-content: center; }
 .release-status { color: #737b88; font-size: 12px; }
 .release-info details { margin-top: 10px; }
-.release-info summary { cursor: pointer; text-align: center; }
+.release-info summary { display: flex; align-items: center; justify-content: center; gap: 4px; width: fit-content; margin: 0 auto; padding: 4px 12px; border-radius: var(--ui-radius-pill); cursor: pointer; list-style: none; transition: color var(--ui-duration-control) var(--ui-ease); }
+.release-info summary::-webkit-details-marker { display: none; }
+.release-info summary .ui-icon { width: 14px; height: 14px; transition: transform var(--ui-duration-control) var(--ui-ease); }
+.release-info details[open] > summary .ui-icon { transform: rotate(180deg); }
+@media (hover: hover) { .release-info summary:hover { color: var(--ui-blue); } }
 .release-info section { margin-top: 18px; }
 .release-info ul { padding-left: 20px; list-style: disc; }
 /* Typing mode rests the cursor as a white surface key; capture mode lights it blue like a primary button.
@@ -299,6 +307,21 @@ button:disabled { cursor: default; }
 .preference-toggle input { appearance: none; flex: none; position: relative; width: 34px; height: 20px; border-radius: var(--ui-radius-pill); background: #d1d5db; cursor: pointer; transition: background-color var(--ui-duration-control) var(--ui-ease); }
 .preference-toggle input::after { content: ''; position: absolute; left: 3px; top: 3px; width: 14px; height: 14px; border-radius: 50%; background: white; box-shadow: 0 1px 3px rgba(0,0,0,.12); transition: transform var(--ui-duration-control) var(--ui-ease); }
 .preference-toggle input:checked { background: var(--ui-blue); }
+/* Hover hints are small white keys, never the operating system's square tooltip. */
+.ui-button[data-tip] { position: relative; }
+.ui-button[data-tip]::after {
+  content: attr(data-tip); position: absolute; bottom: calc(100% + 12px); left: 50%; translate: -50% 0;
+  padding: 5px 12px; border-radius: var(--ui-radius-pill); background: white; box-shadow: var(--ui-shadow-control);
+  color: #4b5563; font-size: 12px; font-weight: 600; line-height: 1.5; white-space: nowrap;
+  opacity: 0; pointer-events: none; transition: opacity var(--ui-duration-control) var(--ui-ease);
+}
+@media (hover: hover) { .ui-button[data-tip]:hover::after { opacity: 1; transition-delay: 450ms; } }
+.ui-button[data-tip][aria-expanded="true"]::after { display: none; }
+.toolbar-left .ui-button[data-tip]::after, .toolbar-right .ui-button[data-tip]::after { bottom: auto; top: calc(100% + 12px); }
+.help-dock .ui-button[data-tip]::after { left: 0; translate: none; }
+.sentence-navigation .ui-button[data-tip]::after { left: auto; right: 0; translate: none; }
+/* Labelled toolbar buttons already say what they do. */
+@media (min-width: 761px) { .toolbar-left .ui-button[data-tip]::after, .toolbar-right .ui-button[data-tip]::after { display: none; } }
 .preference-toggle input:checked::after { transform: translateX(14px); }
 .source-selection-surface { position: absolute; border-radius: var(--ui-radius-word); background: var(--ui-blue); box-shadow: var(--ui-shadow-blue); transform-origin: center; }
 

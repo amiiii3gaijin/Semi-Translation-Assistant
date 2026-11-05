@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { ChevronDown } from 'lucide-react';
 import history from '../../../release-history.json';
 
 declare const __RELEASE__: { version: string; date: string; build: string };
@@ -28,8 +29,8 @@ export function ReleaseInfo() {
     return () => { live = false; pending?.abort(); clearInterval(interval); window.removeEventListener('focus', check); };
   }, []);
   return <footer className="release-info">
-    <div><span title={`构建 ${current.build}`}>半翻 v{current.version}</span><span className="release-status">{status}</span></div>
-    <details><summary>更新记录</summary>
+    <div><span>半翻 v{current.version}</span><span className="release-status">{status}</span></div>
+    <details><summary>更新记录<ChevronDown className="ui-icon" aria-hidden="true" /></summary>
       {history.map(release => <section key={release.version}>
         <p>v{release.version} · {release.date}</p>
         <ul>{release.changes.map(change => <li key={change}>{change}</li>)}</ul>

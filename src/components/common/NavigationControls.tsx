@@ -174,9 +174,9 @@ export function NavigationControls() {
             {shortcuts.map(([label, key]) => <li key={key}><span>{label}</span>
               <kbd className={key === '5' ? 'shortcut-primary' : undefined}>{key}</kbd></li>)}
           </ul>
-          <p className="ui-caption help-copy">数字键指小键盘。轻按右 Alt 切换抓取模式，QWE / ASD / ZXC 对应 789 / 456 / 123；亮蓝光标表示抓取模式，沉稳深蓝表示打字模式；两种模式均为白字。抓取后默认返回打字，也可按右 Alt 或 Esc 退出。按住 5，用 4/6 连续选词；7 扩展当前块，9 收回。也可先按 7 预选，再点按 5。有注释时，8/2 可上下进入正文或注释，3 跳到当前区域末尾。</p>
+          <p className="ui-caption help-copy">数字键指小键盘。轻按右 Alt 切换抓取模式，QWE / ASD / ZXC 对应 789 / 456 / 123；蓝色光标表示抓取模式，白色光标表示打字模式。抓取后默认返回打字，也可按右 Alt 或 Esc 退出。按住 5，用 4/6 连续选词；7 扩展当前块，9 收回。也可先按 7 预选，再点按 5。有注释时，8/2 可上下进入正文或注释，3 跳到当前区域末尾。</p>
           <p className="ui-caption help-copy">句尾可添加〔注：提示内容〕。注释里的句号不会分卡，也不发送给 LLM；可点选或上下移入后抓取。</p>
-          <p className="ui-caption help-copy">实线表示默认词组，虚线表示可扩展部分。线段间的小点表示同一候选，跨行端点小点表示延续；无关词组之间留空。标线不随光标改变；墨蓝色仅提醒全文术语。7 扩选、9 撤回。</p>
+          <p className="ui-caption help-copy">实线表示默认词组，虚线表示可扩展部分。线段间的小点表示同一候选，跨行端点小点表示延续；无关词组之间留空。标线不随光标改变；蓝灰色仅提醒全文术语。7 扩选、9 撤回。</p>
           <p className="ui-caption help-copy">Page Up / Page Down 可长按连续翻页，松开即停。小键盘 + 返回上一句，Enter 完成并进入下一句，长按均只执行一次；主键盘加号正常输入。</p>
           <p className="ui-caption help-copy">自动整选后，9 回到进入时的词：从左进入回组首，从右进入回组尾。上下移动或鼠标定位保留落点。7 可逐层扩展，9 逐层收回；离开该组前保持细选。</p>
           <p className="ui-caption help-copy">8/2 在区域内按屏幕行移动；跨到注释按阅读进度定位，返回正文恢复原位置；按住 5 或手动预选时不换行。括号、引号和运算符可用键盘定位；普通停顿标点跳过，但范围抓取仍保留。3 跳到当前原文句尾。</p>
